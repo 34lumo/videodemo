@@ -1,282 +1,327 @@
-// canvas-block7.jsx — Block 7: Between Visits. 0:53 → 1:06
-// Pure black. Symmetric layout → converge to center → bounce → zoom to camera.
+// canvas-block7.jsx — Block 7: The Heartbeat. 0:53 → 1:06
+// "Between Visits" anchored static — only right text changes, then unification.
 
 function renderBlock7Canvas(ctx, t) {
   if (t < 53.0 || t > 66.0) return;
   const lt = t - 53.0;
 
-  // Faint grain on pure black
-  if (lt < 12.0) {
-    drawGrain(ctx, lt, 0.022);
+  // Pure black — no atmosphere, silence is earned
+
+  const centerY = 540;
+  const fontSize = 72;
+  const anchorFont = `800 ${fontSize}px ${FONT_SERIF}`;
+  const restFont = `600 ${fontSize}px ${FONT_SERIF}`;
+
+  // Calculate anchor position dynamically for better balance
+  ctx.font = anchorFont;
+  const betweenVisitsWidth = ctx.measureText('Between Visits').width;
+  ctx.font = restFont;
+  const longestText = ', deterioration gets caught early.'; // Longest right text
+  const longestWidth = ctx.measureText(longestText).width;
+  const totalWidth = betweenVisitsWidth + longestWidth;
+  const anchorX = 960 - totalWidth / 2 - 50; // Center the whole phrase, slight left adjustment
+
+  // Right-side texts that change
+  const rightTexts = [
+    ', recovery is now tracked.',
+    ', deterioration gets caught early.',
+    ', clinicians are never blind.',
+    ', nothing gets missed.',
+    '.com' // The final reveal - triggers EPIC finale
+  ];
+
+  const holdDur = 2.0; // Each text holds for 2s
+  const crossDur = 0.2; // 200ms cross-dissolve
+
+  // Calculate which text and fade states
+  let currentIndex = -1;
+  let fadeIn = 0;
+  let fadeOut = 0;
+
+  for (let i = 0; i < rightTexts.length; i++) {
+    const textStart = i * (holdDur + crossDur);
+    const textEnd = textStart + holdDur;
+    const fadeOutStart = textEnd;
+    const fadeOutEnd = fadeOutStart + crossDur;
+
+    if (lt >= textStart && lt < fadeOutEnd) {
+      currentIndex = i;
+
+      // Fade in
+      if (lt < textStart + crossDur) {
+        fadeIn = (lt - textStart) / crossDur;
+      } else {
+        fadeIn = 1;
+      }
+
+      // Fade out
+      if (lt >= fadeOutStart) {
+        fadeOut = (lt - fadeOutStart) / crossDur;
+      } else {
+        fadeOut = 0;
+      }
+      break;
+    }
   }
 
-  const FONT_SIZE = 72;
-  const Y_CENTER = 540;
-  const LEFT_START_X = 140;
+  // ── PHASE 1: Static "Between Visits" with changing right text ──
+  const unificationStart = rightTexts.length * (holdDur + crossDur);
 
-  // ── LEFT ANCHOR — "Between Visits" ──
-  // Stays on left until it's time to join
-  const joinStartTime = 7.40; // when both move to center
-
-  if (lt > 0.20 && lt < joinStartTime) {
+  if (lt < unificationStart) {
+    // Draw static "Between Visits"
     ctx.save();
-    ctx.font = `700 ${FONT_SIZE}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
+    ctx.font = anchorFont;
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('Between Visits', LEFT_START_X, Y_CENTER);
-    ctx.restore();
-  }
-
-  // Measure "Between Visits" width
-  ctx.save();
-  ctx.font = `700 ${FONT_SIZE}px ${FONT_SERIF}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-  const bvWidth = ctx.measureText('Between Visits').width;
-  ctx.restore();
-
-  const CHANGING_START_X = LEFT_START_X + bvWidth + 100;
-
-  // ── ROTATING STATEMENTS (shorter to avoid cutting) ──
-
-  // Statement 1: "Clinicians operate" → "blind."
-  if (lt >= 0.60 && lt < 2.50) {
-    const tLocal = lt - 0.60;
-    const fadeIn = clamp(tLocal / 0.30, 0, 1);
-    const fadeOut = clamp((tLocal - 1.60) / 0.30, 0, 1);
-    const fade = Easing.easeInOutCubic(fadeIn) * (1 - Easing.easeInOutCubic(fadeOut));
-
-    if (fade > 0.001) {
-      ctx.save();
-      ctx.globalAlpha = fade;
-      ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillText('Clinicians operate', CHANGING_START_X, Y_CENTER);
-      ctx.restore();
-    }
-
-    ctx.save();
-    ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-    const greyWidth = ctx.measureText('Clinicians operate').width;
+    ctx.fillText('Between Visits', anchorX, centerY);
     ctx.restore();
 
-    if (tLocal >= 0.08 && tLocal < 1.90) {
-      const slamT = clamp((tLocal - 0.08) / 0.18, 0, 1);
-      const slamEase = Easing.easeOutBack(slamT);
-      let scale = 0.92 + slamEase * 0.18;
-      if (slamT >= 1.0) {
-        const snapT = clamp((tLocal - 0.26) / 0.06, 0, 1);
-        scale = 1.10 - snapT * 0.10;
-      }
-      const fadeOut2 = clamp((tLocal - 1.60) / 0.30, 0, 1);
-      const opacity = (1 - fadeOut2);
+    // Draw changing right text
+    if (currentIndex >= 0) {
+      const rightText = rightTexts[currentIndex];
+      const opacity = fadeIn * (1 - fadeOut);
 
-      if (opacity > 0.001) {
+      if (opacity > 0.01) {
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.translate(CHANGING_START_X + greyWidth + 20, Y_CENTER);
-        ctx.scale(scale, scale);
-        ctx.font = `900 ${FONT_SIZE}px ${FONT_SERIF}`;
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('blind.', 0, 0);
+
+        // Measure "Between Visits" to know where right text starts
+        ctx.font = anchorFont;
+        const anchorWidth = ctx.measureText('Between Visits').width;
+
+        ctx.font = restFont;
+        ctx.fillStyle = '#AEAEB2';
+        ctx.fillText(rightText, anchorX + anchorWidth, centerY);
         ctx.restore();
       }
     }
   }
 
-  // Statement 2: "Patients recover" → "alone."
-  if (lt >= 2.50 && lt < 4.40) {
-    const tLocal = lt - 2.50;
-    const fadeIn = clamp(tLocal / 0.30, 0, 1);
-    const fadeOut = clamp((tLocal - 1.60) / 0.30, 0, 1);
-    const fade = Easing.easeInOutCubic(fadeIn) * (1 - Easing.easeInOutCubic(fadeOut));
+  // ── PHASE 2: Unification sequence ──
+  if (lt >= unificationStart) {
+    const unifyLt = lt - unificationStart;
 
-    if (fade > 0.001) {
-      ctx.save();
-      ctx.globalAlpha = fade;
-      ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillText('Patients recover', CHANGING_START_X, Y_CENTER);
-      ctx.restore();
+    // Step 1: Brief flash/impact when .com appears (150ms)
+    const flashDur = 0.15;
+
+    // Step 2: Words join together quickly (250ms)
+    const joinWordsStart = flashDur;
+    const joinWordsDur = 0.25;
+
+    // Step 3: Move to center + scale up simultaneously (400ms) - EPIC
+    const epicStart = joinWordsStart + joinWordsDur;
+    const epicDur = 0.4;
+
+    // Step 4: Explosion of effects at center (500ms)
+    const explosionStart = epicStart + epicDur;
+    const explosionDur = 0.5;
+
+    // Step 5: Hold large with pulsing glow (2.5s)
+    const holdStart = explosionStart + explosionDur;
+    const holdEnd = holdStart + 2.5;
+
+    // Step 6: Fade to black (1.2s)
+    const fadeBlackStart = holdEnd;
+    const fadeBlackDur = 1.2;
+
+    // Initial flash when .com appears
+    let flashIntensity = 0;
+    if (unifyLt < flashDur) {
+      flashIntensity = Math.sin((unifyLt / flashDur) * Math.PI) * 0.4;
     }
 
-    ctx.save();
-    ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-    const greyWidth = ctx.measureText('Patients recover').width;
-    ctx.restore();
+    // Measure widths
+    ctx.font = anchorFont;
+    const betweenWidth = ctx.measureText('Between').width;
+    const visitsWidth = ctx.measureText('Visits').width;
+    const spaceWidth = ctx.measureText(' ').width;
+    ctx.font = restFont;
+    const comWidth = ctx.measureText('.com').width;
 
-    if (tLocal >= 0.08 && tLocal < 1.90) {
-      const slamT = clamp((tLocal - 0.08) / 0.18, 0, 1);
-      const slamEase = Easing.easeOutBack(slamT);
-      let scale = 0.92 + slamEase * 0.18;
-      if (slamT >= 1.0) {
-        const snapT = clamp((tLocal - 0.26) / 0.06, 0, 1);
-        scale = 1.10 - snapT * 0.10;
+    // Calculate join progress
+    const joinT = Math.min(Math.max((unifyLt - joinWordsStart) / joinWordsDur, 0), 1);
+    const joinEase = Easing.easeInOutCubic(joinT);
+
+    // Initial positions
+    const betweenInitialX = anchorX;
+    const visitsInitialX = betweenInitialX + betweenWidth + spaceWidth;
+    const comInitialX = visitsInitialX + visitsWidth;
+
+    // Joined positions (tight together)
+    const betweenJoinedX = anchorX;
+    const visitsJoinedX = betweenJoinedX + betweenWidth - 5;
+    const comJoinedX = visitsJoinedX + visitsWidth - 5;
+
+    // Interpolate during join
+    const betweenX = betweenInitialX + (betweenJoinedX - betweenInitialX) * joinEase;
+    const visitsX = visitsInitialX + (visitsJoinedX - visitsInitialX) * joinEase;
+    const comX = comInitialX + (comJoinedX - comInitialX) * joinEase;
+
+    // EPIC transformation - move to center + scale up simultaneously
+    const epicT = Math.min(Math.max((unifyLt - epicStart) / epicDur, 0), 1);
+    const epicEase = Easing.easeOutCubic(epicT);
+
+    // Calculate center position
+    const joinedWidth = betweenWidth + visitsWidth + comWidth - 10;
+    const targetCenterX = 960 - joinedWidth / 2;
+
+    const currentBetweenX = betweenX + (targetCenterX - betweenX) * epicEase;
+    const currentVisitsX = visitsX + (targetCenterX + betweenWidth - 5 - visitsX) * epicEase;
+    const currentComX = comX + (targetCenterX + betweenWidth + visitsWidth - 10 - comX) * epicEase;
+
+    // Scale grows during epic moment
+    let scale = 1.0 + epicEase * 0.25; // 100% → 125%
+
+    // Explosion effects at center
+    let explosionIntensity = 0;
+    let particles = [];
+    if (unifyLt >= explosionStart) {
+      const expT = Math.min((unifyLt - explosionStart) / explosionDur, 1);
+      explosionIntensity = Math.sin(expT * Math.PI);
+
+      // Continue scaling during explosion
+      scale = 1.25 + Easing.easeOutCubic(expT) * 0.25; // 125% → 150%
+
+      // Generate particles for explosion
+      const particleCount = 20;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (i / particleCount) * Math.PI * 2;
+        const distance = expT * 300;
+        particles.push({
+          x: 960 + Math.cos(angle) * distance,
+          y: centerY + Math.sin(angle) * distance,
+          opacity: (1 - expT) * 0.6
+        });
       }
-      const fadeOut2 = clamp((tLocal - 1.60) / 0.30, 0, 1);
-      const opacity = (1 - fadeOut2);
+    }
 
-      if (opacity > 0.001) {
+    // Pulsing during hold
+    let pulseScale = 1.0;
+    if (unifyLt >= holdStart && unifyLt < holdEnd) {
+      const holdT = (unifyLt - holdStart) / (holdEnd - holdStart);
+      pulseScale = 1.0 + Math.sin(holdT * Math.PI * 6) * 0.03; // Subtle pulse
+    }
+
+    scale *= pulseScale;
+
+    // Color transformation
+    const unifiedColor = unifyLt >= joinWordsStart;
+
+    // Final fade
+    let finalOpacity = 1.0;
+    if (unifyLt >= fadeBlackStart) {
+      const fadeT = Math.min((unifyLt - fadeBlackStart) / fadeBlackDur, 1);
+      finalOpacity = 1 - Easing.easeInCubic(fadeT);
+    }
+
+    if (finalOpacity > 0.01) {
+      // Initial flash across screen
+      if (flashIntensity > 0) {
         ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(CHANGING_START_X + greyWidth + 20, Y_CENTER);
-        ctx.scale(scale, scale);
-        ctx.font = `900 ${FONT_SIZE}px ${FONT_SERIF}`;
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('alone.', 0, 0);
+        ctx.globalAlpha = flashIntensity * finalOpacity;
+        ctx.fillStyle = '#4A9EFF';
+        ctx.fillRect(0, 0, 1920, 1080);
         ctx.restore();
       }
-    }
-  }
 
-  // Statement 3: "Recovery stops" → "at the door."
-  if (lt >= 4.40 && lt < 6.60) {
-    const tLocal = lt - 4.40;
-    const fadeIn = clamp(tLocal / 0.30, 0, 1);
-    const fadeOut = clamp((tLocal - 1.80) / 0.40, 0, 1);
-    const fade = Easing.easeInOutCubic(fadeIn) * (1 - Easing.easeInOutCubic(fadeOut));
-
-    if (fade > 0.001) {
-      ctx.save();
-      ctx.globalAlpha = fade;
-      ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillText('Recovery stops', CHANGING_START_X, Y_CENTER);
-      ctx.restore();
-    }
-
-    ctx.save();
-    ctx.font = `600 ${FONT_SIZE}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-    const greyWidth = ctx.measureText('Recovery stops').width;
-    ctx.restore();
-
-    if (tLocal >= 0.08 && tLocal < 2.00) {
-      const slamT = clamp((tLocal - 0.08) / 0.18, 0, 1);
-      const slamEase = Easing.easeOutBack(slamT);
-      let scale = 0.92 + slamEase * 0.18;
-      if (slamT >= 1.0) {
-        const snapT = clamp((tLocal - 0.26) / 0.06, 0, 1);
-        scale = 1.10 - snapT * 0.10;
-      }
-      const fadeOut2 = clamp((tLocal - 1.80) / 0.40, 0, 1);
-      const opacity = (1 - fadeOut2);
-
-      if (opacity > 0.001) {
+      // Explosion particles
+      if (particles.length > 0) {
         ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(CHANGING_START_X + greyWidth + 20, Y_CENTER);
-        ctx.scale(scale, scale);
-        ctx.font = `900 ${FONT_SIZE}px ${FONT_SERIF}`;
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('at the door.', 0, 0);
+        particles.forEach(p => {
+          ctx.globalAlpha = p.opacity * finalOpacity;
+          ctx.fillStyle = '#4A9EFF';
+          ctx.shadowColor = '#4A9EFF';
+          ctx.shadowBlur = 20;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
         ctx.restore();
       }
-    }
-  }
 
-  // ── THE CONVERGENCE + ZOOM FINALE ──
-  if (lt >= 6.80) {
-    const tLocal = lt - 6.80;
+      // Multiple expanding rings during explosion
+      if (explosionIntensity > 0) {
+        for (let i = 0; i < 4; i++) {
+          const ringT = (unifyLt - explosionStart - i * 0.1) / explosionDur;
+          if (ringT > 0 && ringT < 1) {
+            const radius = Easing.easeOutCubic(ringT) * (600 + i * 100);
+            const ringAlpha = (1 - ringT) * 0.35 * finalOpacity;
 
-    // Phase 1: ".com" appears on right (0.00 - 0.60)
-    // Phase 2: Both move to center (0.60 - 1.20)
-    // Phase 3: Bounce on join (1.20 - 1.35)
-    // Phase 4: Zoom to camera (1.35 - 3.00)
+            ctx.save();
+            ctx.globalAlpha = ringAlpha;
+            ctx.strokeStyle = '#4A9EFF';
+            ctx.lineWidth = 4 - i * 0.5;
+            ctx.shadowColor = '#4A9EFF';
+            ctx.shadowBlur = 40;
+            ctx.beginPath();
+            ctx.arc(960, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
 
-    // Movement to center
-    const moveT = clamp((tLocal - 0.60) / 0.60, 0, 1);
-    const moveEase = Easing.easeInOutCubic(moveT);
+      // Radial gradient glow behind text during hold
+      if (unifyLt >= holdStart && unifyLt < holdEnd) {
+        const holdT = (unifyLt - holdStart) / (holdEnd - holdStart);
+        const glowPulse = 0.3 + Math.sin(holdT * Math.PI * 6) * 0.15;
 
-    // Calculate positions
-    const fullText = 'betweenvisits.com';
-    ctx.save();
-    ctx.font = `900 ${FONT_SIZE}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-    const fullWidth = ctx.measureText(fullText).width;
-    ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = glowPulse * finalOpacity;
+        const grad = ctx.createRadialGradient(960, centerY, 0, 960, centerY, 500);
+        grad.addColorStop(0, 'rgba(74, 158, 255, 0.3)');
+        grad.addColorStop(0.5, 'rgba(74, 158, 255, 0.1)');
+        grad.addColorStop(1, 'rgba(74, 158, 255, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1920, 1080);
+        ctx.restore();
+      }
 
-    const CENTER_X = 960;
-    const finalX = CENTER_X - fullWidth / 2; // center the full text
-
-    // "Between Visits" movement
-    const bvStartX = LEFT_START_X;
-    const bvEndX = finalX;
-    const bvCurrentX = bvStartX + (bvEndX - bvStartX) * moveEase;
-
-    // ".com" movement
-    const comStartX = CHANGING_START_X;
-    const comEndX = finalX + bvWidth;
-    const comCurrentX = comStartX + (comEndX - comStartX) * moveEase;
-
-    // Bounce on join
-    let bounceScale = 1.0;
-    if (tLocal >= 1.20 && tLocal < 1.35) {
-      const bounceT = (tLocal - 1.20) / 0.15;
-      bounceScale = 1.0 + Math.sin(bounceT * Math.PI) * 0.08;
-    }
-
-    // Zoom to camera (dramatic scale up)
-    let zoomScale = 1.0;
-    if (tLocal >= 1.35) {
-      const zoomT = clamp((tLocal - 1.35) / 1.65, 0, 1);
-      const zoomEase = Easing.easeInCubic(zoomT);
-      zoomScale = 1.0 + zoomEase * 3.5; // scale up to 4.5x
-    }
-
-    // Fade out at the very end
-    let opacity = 1;
-    if (tLocal > 2.60) {
-      opacity = 1 - clamp((tLocal - 2.60) / 0.40, 0, 1);
-    }
-
-    // Color transition for ".com": white → blue during movement
-    const blueT = clamp((tLocal - 0.80) / 0.40, 0, 1);
-    const r = Math.round(255 - blueT * (255 - 74));
-    const g = Math.round(255 - blueT * (255 - 158));
-    const b = 255;
-
-    if (opacity > 0.001) {
+      // Main text
       ctx.save();
-      ctx.globalAlpha = opacity;
-      ctx.translate(CENTER_X, Y_CENTER);
-      ctx.scale(bounceScale * zoomScale, bounceScale * zoomScale);
-      ctx.translate(-CENTER_X, -Y_CENTER);
+      ctx.globalAlpha = finalOpacity;
 
-      // Draw "Between Visits"
-      ctx.font = `700 ${FONT_SIZE}px ${FONT_SERIF}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
+      ctx.translate(960, centerY);
+      ctx.scale(scale, scale);
+      ctx.translate(-960, -centerY);
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('Between Visits', bvCurrentX, Y_CENTER);
 
-      // Draw ".com"
-      ctx.font = `900 ${FONT_SIZE}px ${FONT_SERIF}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillText('.com', comCurrentX, Y_CENTER);
+      // Strong glow during epic + explosion
+      const glowStrength = Math.max(epicT, explosionIntensity);
+      if (glowStrength > 0) {
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 50 * glowStrength;
+      }
+
+      // Color choice
+      const textColor = unifiedColor ? '#ffffff' : '#ffffff';
+      ctx.font = anchorFont;
+
+      // Draw "Between"
+      ctx.fillStyle = textColor;
+      ctx.fillText('Between', currentBetweenX, centerY);
+
+      // Draw "Visits"
+      ctx.fillStyle = textColor;
+      ctx.fillText('Visits', currentVisitsX, centerY);
+
+      // Draw ".com" in gradient during explosion, solid blue otherwise
+      ctx.font = restFont;
+      if (explosionIntensity > 0.1) {
+        // Gradient .com during explosion
+        const grad = ctx.createLinearGradient(currentComX, 0, currentComX + comWidth, 0);
+        grad.addColorStop(0, '#00D9FF');
+        grad.addColorStop(0.5, '#4A9EFF');
+        grad.addColorStop(1, '#6BB3FF');
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = '#4A9EFF';
+      }
+      ctx.fillText('.com', currentComX, centerY);
 
       ctx.restore();
     }

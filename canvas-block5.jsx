@@ -46,29 +46,90 @@ function renderBlock5Beat1(ctx, t) {
     });
   }
 
-  // GEOMETRY — flat-line monitor strip on the left, ominous
+  // GEOMETRY — Enhanced flatline visualization showing data gap
   if (lt > 0.60) {
     const fade = clamp((lt - 0.60) / 0.50, 0, 1) * (1 - clamp((lt - 2.85) / 0.20, 0, 1));
     ctx.save();
     ctx.globalAlpha = fade;
-    // Horizontal flatline EKG-style at the bottom
-    const x = 144, y = 840, w = 920;
-    ctx.strokeStyle = 'rgba(255,107,107,0.55)';
+
+    const x = 144, y = 780, w = 920, h = 120;
+
+    // Background grid for context
+    ctx.strokeStyle = 'rgba(255, 107, 107, 0.08)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 6; i++) {
+      const gridY = y + (h / 6) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, gridY);
+      ctx.lineTo(x + w, gridY);
+      ctx.stroke();
+    }
+
+    // Vertical time markers
+    for (let i = 0; i <= 4; i++) {
+      const gridX = x + (w / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(gridX, y);
+      ctx.lineTo(gridX, y + h);
+      ctx.stroke();
+    }
+
+    // Main flatline with dramatic single spike (last data point 6 weeks ago)
+    ctx.strokeStyle = BV_RED_B5;
     ctx.shadowColor = BV_RED_B5;
-    ctx.shadowBlur = 8;
-    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    // Mostly flat with a single weak blip at 40%
-    ctx.lineTo(x + w * 0.4, y);
-    ctx.lineTo(x + w * 0.42, y - 12);
-    ctx.lineTo(x + w * 0.44, y + 4);
-    ctx.lineTo(x + w * 0.46, y);
-    ctx.lineTo(x + w, y);
+    ctx.moveTo(x, y + h / 2);
+
+    // Mostly flat until 15% where the old spike was
+    ctx.lineTo(x + w * 0.14, y + h / 2);
+
+    // Single dramatic spike (the last data point)
+    ctx.lineTo(x + w * 0.15, y + h * 0.2); // Up
+    ctx.lineTo(x + w * 0.16, y + h * 0.75); // Down
+    ctx.lineTo(x + w * 0.17, y + h * 0.45); // Recovery
+    ctx.lineTo(x + w * 0.19, y + h / 2); // Back to baseline
+
+    // Then completely flat (no data since then)
+    ctx.lineTo(x + w, y + h / 2);
     ctx.stroke();
-    // Endpoint marker
+
+    // Pulsing dot at the spike point
+    const dotT = (lt * 2.5) % 1;
+    const dotPulse = Math.sin(dotT * Math.PI) * 0.6 + 0.4;
+    ctx.shadowBlur = 20 * dotPulse;
     ctx.fillStyle = BV_RED_B5;
-    ctx.beginPath(); ctx.arc(x + w, y, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + w * 0.155, y + h / 2 - 30, 5 * (0.8 + dotPulse * 0.4), 0, Math.PI * 2);
+    ctx.fill();
+
+    // "No data since" annotation with arrow
+    ctx.shadowBlur = 0;
+    ctx.font = `500 11px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255, 107, 107, 0.7)';
+    ctx.fillText('GAP: 6 WEEKS', x + w * 0.25, y + h / 2 + 35);
+
+    // Dashed line showing gap
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(255, 107, 107, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.19, y + h / 2);
+    ctx.lineTo(x + w * 0.95, y + h / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Time labels
+    ctx.font = `500 10px ${FONT_MONO}`;
+    ctx.fillStyle = 'rgba(255, 107, 107, 0.5)';
+    ctx.textAlign = 'center';
+    ctx.fillText('6 WKS AGO', x + w * 0.155, y + h + 18);
+    ctx.fillText('NOW', x + w * 0.95, y + h + 18);
+
     ctx.restore();
   }
 
@@ -136,14 +197,125 @@ function renderBlock5Beat2(ctx, t) {
     });
   }
 
-  // GEOMETRY — live active waveform on the right (the opposite of the flatline)
+  // GEOMETRY — Enhanced real-time data visualization (continuous monitoring)
   if (lt > 1.10) {
     const fade = clamp((lt - 1.10) / 0.40, 0, 1) * (1 - clamp((lt - 3.95) / 0.30, 0, 1));
-    drawWaveform(ctx, lt, {
-      x: 1920 - 140 - 920, y: 830, w: 920, h: 40,
-      alpha: fade * 0.85, color: '#4A9EFF',
-      amplitude: 0.7, speed: 1.6, thickness: 2,
-    });
+    ctx.save();
+    ctx.globalAlpha = fade;
+
+    const x = 1920 - 140 - 920, y = 780, w = 920, h = 120;
+
+    // Background grid for context
+    ctx.strokeStyle = 'rgba(74, 158, 255, 0.08)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 6; i++) {
+      const gridY = y + (h / 6) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, gridY);
+      ctx.lineTo(x + w, gridY);
+      ctx.stroke();
+    }
+
+    // Vertical time markers
+    for (let i = 0; i <= 4; i++) {
+      const gridX = x + (w / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(gridX, y);
+      ctx.lineTo(gridX, y + h);
+      ctx.stroke();
+    }
+
+    // Multiple overlapping waveforms showing rich continuous data
+    const cy = y + h / 2;
+
+    // Main waveform - primary signal
+    ctx.strokeStyle = '#4A9EFF';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const px = x + (i / 200) * w;
+      const u = i / 200;
+      const timeOffset = lt * 2;
+      const env = 0.5 + 0.5 * Math.sin(u * Math.PI);
+      const v = Math.sin(timeOffset + u * 12) * 0.5 +
+                Math.sin(timeOffset * 3 + u * 25) * 0.3 +
+                Math.sin(timeOffset * 0.7 + u * 5) * 0.2;
+      const py = cy + v * env * h * 0.35;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Secondary waveform - complementary signal with different frequency
+    ctx.globalAlpha = fade * 0.4;
+    ctx.strokeStyle = '#00D9FF';
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 8;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const px = x + (i / 200) * w;
+      const u = i / 200;
+      const timeOffset = lt * 1.8;
+      const v = Math.sin(timeOffset * 2 + u * 18) * 0.4 +
+                Math.sin(timeOffset * 5 + u * 32) * 0.25;
+      const py = cy + v * h * 0.25;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Data points along the waveform
+    ctx.globalAlpha = fade;
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 8; i++) {
+      const u = 0.15 + i * 0.1;
+      const px = x + u * w;
+      const timeOffset = lt * 2;
+      const env = 0.5 + 0.5 * Math.sin(u * Math.PI);
+      const v = Math.sin(timeOffset + u * 12) * 0.5 +
+                Math.sin(timeOffset * 3 + u * 25) * 0.3;
+      const py = cy + v * env * h * 0.35;
+
+      ctx.fillStyle = '#4A9EFF';
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pulsing "live" indicator
+    const liveT = (lt * 2.5) % 1;
+    const livePulse = Math.sin(liveT * Math.PI) * 0.6 + 0.4;
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 16 * livePulse;
+    ctx.fillStyle = '#00D9FF';
+    ctx.beginPath();
+    ctx.arc(x + w - 20, y + 20, 6 * (0.8 + livePulse * 0.3), 0, Math.PI * 2);
+    ctx.fill();
+
+    // "LIVE" label
+    ctx.shadowBlur = 0;
+    ctx.font = `600 11px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#00D9FF';
+    ctx.fillText('LIVE', x + w - 32, y + 20);
+
+    // Time labels
+    ctx.font = `500 10px ${FONT_MONO}`;
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.6)';
+    ctx.textAlign = 'center';
+    ctx.fillText('6H AGO', x + w * 0.15, y + h + 18);
+    ctx.fillText('3H AGO', x + w * 0.5, y + h + 18);
+    ctx.fillText('NOW', x + w * 0.95, y + h + 18);
+
+    // Annotation
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.7)';
+    ctx.fillText('CONTINUOUS DATA', x, y + h / 2 + 35);
+
+    ctx.restore();
   }
 
   // Center typewriter

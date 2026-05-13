@@ -7,35 +7,10 @@ function renderBlock1Beat1(ctx, t) {
   if (t > 3.62) return;
   const lt = t;
 
-  // ── Tertiary clinical chrome (top + sides) ──
-  // Top-right stat readout
-  let s = slamInState(lt, { inAt: 0.10, dur: 0.30, offsetY: 8 });
-  if (s) {
-    drawTextBlock(ctx, 'DATA SOURCE · CDC · 2024', {
-      x: 1920 - 96, y: 86,
-      font: `500 14px ${FONT_MONO}`,
-      color: 'rgba(255,255,255,0.42)',
-      letterSpacing: 2.8,
-      align: 'right',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
+  // Tertiary clinical chrome removido para evitar sobreposición
 
-  // Far-right side: small data tag — "T+00:00:40" interval marker
-  s = slamInState(lt, { inAt: 0.18, dur: 0.30, offsetY: 6 });
-  if (s) {
-    drawTextBlock(ctx, 'INTERVAL · T+00:00:40', {
-      x: 1920 - 96, y: 116,
-      font: `500 11px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.65)',
-      letterSpacing: 2,
-      align: 'right',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-
-  // ── PRIMARY — "40" hero ──
-  s = slamInState(lt, { inAt: 0.22, dur: 0.34, offsetY: 28, fromScale: 0.94, blurPx: 4 });
+  // ── PRIMARY — "40" hero with CINEMATIC EFFECTS ──
+  let s = slamInState(lt, { inAt: 0.22, dur: 0.34, offsetY: 28, fromScale: 0.94, blurPx: 4 });
   const c40 = countUpValue(lt, { inAt: 0.25, dur: 0.40, from: 13, to: 40, decimals: 0, punchScale: 1.05 });
   if (s && c40) {
     const opts40 = {
@@ -45,24 +20,41 @@ function renderBlock1Beat1(ctx, t) {
       opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
       punchScale: c40.scale,
     };
+
+    // Pulse wave when number appears
+    drawPulseWave(ctx, lt, { cx: 400, cy: 450, inAt: 0.65, speed: 0.5, maxRadius: 400 });
+
+    // Lens flare on impact
+    drawLensFlare(ctx, lt, { x: 144, y: 320, inAt: 0.65, dur: 1.0, intensity: 0.8 });
+
+    // Enhanced ghost trail
     drawGhostTrail(ctx, lt, c40.display, opts40,
       { at: 0.58, dur: 0.45, offsetY: 14, extraScale: 0.08, blur: 24, alpha: 0.50 });
+
     drawTextBlock(ctx, c40.display, opts40);
   }
 
-  // ── SECONDARY — "EVERY" eyebrow above "40" ──
+  // Light leak transition
+  drawLightLeak(ctx, lt, { inAt: 0.15, dur: 1.5, side: 'left' });
+
+  // ── SECONDARY — "EVERY" eyebrow above "40" with glow ──
   s = slamInState(lt, { inAt: 0.15, dur: 0.28, offsetY: 14 });
   if (s) {
-    drawTextBlock(ctx, 'EVERY', {
-      x: 144, y: 280,
-      font: `500 24px ${FONT_MONO}`,
-      color: 'rgba(255,255,255,0.62)',
-      letterSpacing: 6.72,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(144, 280 + s.ty);
+    ctx.font = `600 26px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '7.8px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('EVERY', 0, 0);
+    ctx.restore();
   }
 
-  // ── SECONDARY — "SECONDS," unit beside "40" ──
+  // ── SECONDARY — "SECONDS," unit beside "40" with gradient ──
   s = slamInState(lt, { inAt: 0.66, dur: 0.28, offsetY: 18, fromScale: 0.96 });
   if (s) {
     ctx.save();
@@ -70,23 +62,42 @@ function renderBlock1Beat1(ctx, t) {
     if ('letterSpacing' in ctx) ctx.letterSpacing = '-8px';
     const w40 = ctx.measureText('40').width;
     ctx.restore();
-    drawTextBlock(ctx, 'SECONDS,', {
-      x: 144 + w40 + 36, y: 580,
-      font: `500 48px ${FONT_MONO}`,
-      color: '#ffffff', letterSpacing: 1.92,
-      opacity: s.opacity, scale: s.scale, translateY: s.ty,
-    });
+
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(144 + w40 + 36, 580 + s.ty);
+    ctx.scale(s.scale, s.scale);
+    ctx.font = `700 56px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.8px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    const grad = ctx.createLinearGradient(0, 0, 400, 0);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(1, '#4A9EFF');
+
+    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = grad;
+    ctx.fillText('SECONDS,', 0, 0);
+    ctx.restore();
   }
 
-  // ── SECONDARY prose — "someone has a stroke." ──
+  // ── SECONDARY prose — "someone has a stroke." with glow ──
   s = slamInState(lt, { inAt: 0.94, dur: 0.34, offsetY: 22 });
   if (s) {
-    drawTextBlock(ctx, 'someone has a stroke.', {
-      x: 580, y: 700,
-      font: `700 64px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -0.32,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(580, 700 + s.ty);
+    ctx.font = `800 70px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.4px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = 'rgba(255,255,255,0.6)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('someone has a stroke.', 0, 0);
+    ctx.restore();
   }
 
   // ── GEOMETRY — interval tick bar at bottom-left ──
@@ -181,18 +192,7 @@ function renderBlock1Beat1(ctx, t) {
     });
   }
 
-  // TERTIARY — small bracketed reference code top-right of 7.8M
-  s = slamInState(lt, { inAt: 2.42, dur: 0.26, offsetY: 6 });
-  if (s) {
-    drawTextBlock(ctx, '[ REF · STROKE.ORG · 2024 ]', {
-      x: 1920 - 140, y: 820,
-      font: `500 11px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.55)',
-      letterSpacing: 1.8,
-      align: 'right',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
+  // Referencia removida para evitar sobreposición
 }
 
 function renderBlock1Beat2(ctx, t) {
@@ -327,26 +327,48 @@ function renderBlock1Beat2(ctx, t) {
     ctx.restore();
   }
 
-  // ── PRIMARY accent — "Recovery happens every day." + "Clinical insight doesn't." ──
+  // ── PRIMARY accent — "Recovery happens every day." + "Clinical insight doesn't." with gradient ──
   s = slamInState(lt, { inAt: 3.28, dur: 0.34, offsetY: 20, outAt: 5.30, outDur: 0.55 });
   if (s) {
-    drawTextBlock(ctx, 'Recovery happens every day.', {
-      x: 960, y: 868,
-      font: `italic 500 60px ${FONT_SERIF}`,
-      color: '#4A9EFF', letterSpacing: -0.3,
-      align: 'center',
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(960, 868 + s.ty);
+    ctx.font = `italic 700 68px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.36px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+
+    const grad = ctx.createLinearGradient(-400, 0, 400, 0);
+    grad.addColorStop(0, '#4A9EFF');
+    grad.addColorStop(0.5, '#00D9FF');
+    grad.addColorStop(1, '#4A9EFF');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = grad;
+    ctx.fillText('Recovery happens every day.', 0, 0);
+    ctx.restore();
   }
   s = slamInState(lt, { inAt: 3.62, dur: 0.34, offsetY: 20, outAt: 5.30, outDur: 0.55 });
   if (s) {
-    drawTextBlock(ctx, "Clinical insight doesn't.", {
-      x: 960, y: 956,
-      font: `italic 500 60px ${FONT_SERIF}`,
-      color: '#4A9EFF', letterSpacing: -0.3,
-      align: 'center',
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(960, 956 + s.ty);
+    ctx.font = `italic 700 68px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.36px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+
+    const grad = ctx.createLinearGradient(-400, 0, 400, 0);
+    grad.addColorStop(0, '#4A9EFF');
+    grad.addColorStop(0.5, '#00D9FF');
+    grad.addColorStop(1, '#4A9EFF');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = grad;
+    ctx.fillText("Clinical insight doesn't.", 0, 0);
+    ctx.restore();
   }
 }
 
@@ -360,8 +382,7 @@ function renderBlock1Canvas(ctx, t) {
   drawDust(ctx, t, 0.5, '#9bb6d6');
 
   // Section chrome
-  if (t >= 0.05 && t < 3.55) drawSectionLabel(ctx, t, '§ 01 · Incidence', { inAt: 0.05, outAt: 3.25 });
-  if (t >= 4.05 && t < 9.60) drawSectionLabel(ctx, t, '§ 02 · Access',    { inAt: 4.05, outAt: 9.30 });
+  // Section labels removidos
 
   // Beats
   renderBlock1Beat1(ctx, t);

@@ -1,81 +1,186 @@
 // canvas-block3.jsx — Block 3: Real-Time Tracking. 0:18 → 0:27
 // Atmosphere: deep teal with blue keypoint glow.
-// HERO geometry block: full clinical observation rendered as pure procedural
-// graphics — hand mesh (21 keypoints), face mesh (procedural dot cloud),
-// waveform (vocal biomarker monitor), bio-data sidebar with rolling values.
+// Shows the real tracking screenshot with blue keypoints - the most important visual in the video.
+
+// Load tracking screenshot
+let trackingImage = null;
+let trackingImageLoaded = false;
+(function loadTrackingImage() {
+  const img = new Image();
+  img.onload = function() {
+    trackingImage = img;
+    trackingImageLoaded = true;
+  };
+  img.onerror = function() {
+    console.error('Failed to load varometricas.png');
+  };
+  img.src = './varometricas.png';
+})();
 
 function renderBlock3Beat1(ctx, t) {
-  // Stage 18.0 → 21.0 — Tight on hand, then pull back to full clinical view
+  // Stage 18.0 → 21.0 — Show real tracking screenshot
   if (t < 18.0 || t > 21.0) return;
   const lt = t - 18.0;
 
-  // Keyframes: hand constellation scales from 5x (tight) to 1x (full view).
-  // Hand position pans from center to right-mid as we pull back and reveal
-  // the face + waveform + metrics.
-  const kfs = [
-    { t: 0.00, handScale: 5.0, handCX: 960, handCY: 540, reveal: 0 },
-    { t: 1.00, handScale: 5.0, handCX: 960, handCY: 540, reveal: 0 },
-    { t: 2.70, handScale: 1.0, handCX: 1180, handCY: 560, reveal: 1, ease: Easing.easeInOutCubic },
-    { t: 3.00, handScale: 1.0, handCX: 1180, handCY: 560, reveal: 1 },
-  ];
-  const st = lerpKeyframes(kfs, lt);
-
-  // Hand keypoints (tight crop → pulled back)
-  drawHandKeypoints(ctx, lt, {
-    cx: st.handCX, cy: st.handCY,
-    size: 280 * st.handScale,
-    inAt: 0,
-    alpha: 1,
-    color: '#4A9EFF',
-    pointSize: 5,
-    showBones: true,
-    revealStaggerDur: 0.10,
-    jitterAmp: 1.2,
-  });
-
-  // ── Reveal layer: face mesh, waveform, panels — appear as we pull back ──
-  if (st.reveal > 0.05) {
-    const rev = st.reveal;
-
-    // Face mesh on the left half
-    drawFaceMesh(ctx, lt, {
-      cx: 600, cy: 540, w: 280, h: 360,
-      inAt: 1.50, alpha: rev * 0.85, density: 0.7, jitterAmp: 0.5,
-    });
-
-    // Crosshair on face
-    drawCrosshair(ctx, {
-      cx: 600, cy: 480, ringR: 80, armLen: 28,
-      color: '#4A9EFF', alpha: rev * 0.7,
-      label: 'FACE · 468',
-      pulseT: (lt * 0.6) % 1,
-    });
-
-    // Waveform at bottom — vocal biomarker
-    drawWaveform(ctx, lt, {
-      x: 120, y: 880, w: 1680, h: 80,
-      alpha: rev * 0.7, color: '#4A9EFF',
-      amplitude: 0.6, speed: 1.3, bars: 0, thickness: 2,
-    });
-
-    // Bio sidebar — vertical strip on far right with rolling metric values
-    drawBioSidebar(ctx, lt, { x: 1800, y: 240, w: 100, h: 600, alpha: rev });
+  // Don't render if image hasn't loaded
+  if (!trackingImageLoaded || !trackingImage) {
+    return;
   }
 
-  // Tertiary chrome — "LIVE" indicator that flashes in once pull-back starts
-  if (st.reveal > 0.15) {
-    const pulse = 0.5 + 0.5 * Math.sin(lt * 5.2);
+  // Calculate viewport - 60% of canvas width, center-right positioned
+  const canvasW = 1920;
+  const imgW = canvasW * 0.60; // 60% width
+  const imgH = imgW * (trackingImage.height / trackingImage.width); // Maintain aspect ratio
+  const imgX = canvasW - imgW - 80; // Right side with margin, leaving left for text
+  const imgY = (1080 - imgH) / 2; // Vertically centered
+
+  const vp = { x: imgX, y: imgY, w: imgW, h: imgH };
+
+  // ── ENTRANCE ANIMATION SEQUENCE (800ms total) ──
+  // Phase 1: Frame draws (0-600ms) - 150ms per edge
+  // Phase 2: Image fades in (0-400ms)
+  // Phase 3: Scan line sweeps (400-700ms)
+  // Phase 4: Label types out (700-800ms+)
+
+  const frameDur = 0.15; // 150ms per edge
+  const imgFadeDur = 0.40; // 400ms
+  const scanDur = 0.30; // 300ms
+  const scanStart = 0.40;
+  const labelStart = 0.70;
+
+  // ── Blue keypoint glow bleeding into background ──
+  const glowFade = clamp(lt / 0.5, 0, 1);
+  if (glowFade > 0.01) {
     ctx.save();
-    ctx.globalAlpha = st.reveal;
-    ctx.shadowColor = '#4A9EFF'; ctx.shadowBlur = 12 * pulse;
+    ctx.globalAlpha = glowFade * 0.06; // 6% opacity max
+    const blueGlow = ctx.createRadialGradient(
+      vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 0.2,
+      vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 1.2
+    );
+    blueGlow.addColorStop(0, '#4A9EFF');
+    blueGlow.addColorStop(0.5, 'rgba(74, 158, 255, 0.3)');
+    blueGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = blueGlow;
+    ctx.fillRect(vp.x - 200, vp.y - 200, vp.w + 400, vp.h + 400);
+    ctx.restore();
+  }
+
+  // ── Draw the tracking image (fade in 0-400ms) ──
+  const imgFade = clamp(lt / imgFadeDur, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = imgFade;
+  ctx.drawImage(trackingImage, vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // ── Dark vignette on edges ──
+  ctx.save();
+  ctx.globalAlpha = imgFade * 0.5;
+  const vignetteGrad = ctx.createRadialGradient(
+    vp.x + vp.w / 2, vp.y + vp.h / 2, Math.min(vp.w, vp.h) * 0.4,
+    vp.x + vp.w / 2, vp.y + vp.h / 2, Math.max(vp.w, vp.h) * 0.8
+  );
+  vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+  ctx.fillStyle = vignetteGrad;
+  ctx.fillRect(vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // ── Hairline frame draws sequentially (0-600ms) ──
+  ctx.save();
+  ctx.strokeStyle = '#4A9EFF';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+
+  // Top edge (0-150ms)
+  if (lt >= 0) {
+    const topProgress = clamp(lt / frameDur, 0, 1);
+    ctx.moveTo(vp.x, vp.y);
+    ctx.lineTo(vp.x + vp.w * topProgress, vp.y);
+  }
+
+  // Right edge (150-300ms)
+  if (lt >= frameDur) {
+    const rightProgress = clamp((lt - frameDur) / frameDur, 0, 1);
+    ctx.moveTo(vp.x + vp.w, vp.y);
+    ctx.lineTo(vp.x + vp.w, vp.y + vp.h * rightProgress);
+  }
+
+  // Bottom edge (300-450ms)
+  if (lt >= frameDur * 2) {
+    const bottomProgress = clamp((lt - frameDur * 2) / frameDur, 0, 1);
+    ctx.moveTo(vp.x + vp.w, vp.y + vp.h);
+    ctx.lineTo(vp.x + vp.w - vp.w * bottomProgress, vp.y + vp.h);
+  }
+
+  // Left edge (450-600ms)
+  if (lt >= frameDur * 3) {
+    const leftProgress = clamp((lt - frameDur * 3) / frameDur, 0, 1);
+    ctx.moveTo(vp.x, vp.y + vp.h);
+    ctx.lineTo(vp.x, vp.y + vp.h - vp.h * leftProgress);
+  }
+
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Horizontal scan line (400-700ms) ──
+  if (lt >= scanStart && lt < scanStart + scanDur) {
+    const scanProgress = (lt - scanStart) / scanDur;
+    const scanY = vp.y + vp.h * scanProgress;
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(vp.x, scanY - 1.5, vp.w, 3);
+    ctx.restore();
+  }
+
+  // ── Label top left (types out after 700ms) ──
+  if (lt >= labelStart) {
+    const labelLt = lt - labelStart;
+    const pulse = 0.5 + 0.5 * Math.sin((lt - labelStart) * 5.2);
+
+    // Pulsing dot appears first
+    ctx.save();
+    const dotFade = clamp(labelLt / 0.05, 0, 1);
+    ctx.globalAlpha = dotFade;
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 12 * pulse;
     ctx.fillStyle = '#4A9EFF';
-    ctx.beginPath(); ctx.arc(150, 996, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.font = `500 14px ${FONT_MONO}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.8px';
-    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#4A9EFF';
-    ctx.fillText('CAM-01 · DIRECT OBSERVATION · LIVE', 168, 996);
+    ctx.beginPath();
+    ctx.arc(vp.x + 16, vp.y - 20, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Label text types out (30ms per character after dot)
+    const fullLabel = 'CAM-01 · DIRECT OBSERVATION · LIVE';
+    const charDelay = 0.03; // 30ms per character
+    const typeStart = 0.05; // Start after dot appears
+    const charsToShow = Math.floor(Math.max(0, (labelLt - typeStart) / charDelay));
+    const visibleLabel = fullLabel.substring(0, charsToShow);
+
+    if (visibleLabel.length > 0) {
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.font = `500 11px ${FONT_MONO}`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '2.2px';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#4A9EFF';
+      ctx.fillText(visibleLabel, vp.x + 28, vp.y - 20);
+      ctx.restore();
+    }
+  }
+
+  // ── Label bottom right (appears after entrance animation) ──
+  const bottomLabelFade = clamp((lt - 0.8) / 0.2, 0, 1);
+  if (bottomLabelFade > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = bottomLabelFade;
+    ctx.font = `500 10px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.85)';
+    ctx.fillText('30 FPS · 1080p', vp.x + vp.w - 12, vp.y + vp.h + 12);
     ctx.restore();
   }
 }
@@ -122,124 +227,260 @@ function drawBioSidebar(ctx, lt, { x, y, w, h, alpha = 1 }) {
 }
 
 function renderBlock3Beat2(ctx, t) {
-  // Stage 21.0 → 27.0 — Four claims stack in on the left while clinical view continues
+  // Stage 21.0 → 27.0 — Four claims stack in on the left while tracking image continues
   if (t < 21.0 || t > 27.0) return;
   const lt = t - 21.0;
 
-  // Continue the clinical view on the right (hand + face + waveform + sidebar)
-  // Slightly smaller/recede to make room for text panel
-  const recede = clamp(lt / 0.50, 0, 1) * (1 - clamp((lt - 5.20) / 0.40, 0, 1));
-  ctx.save();
-  ctx.globalAlpha = recede;
-  drawHandKeypoints(ctx, lt + 3.0, {
-    cx: 1380, cy: 600, size: 260,
-    inAt: 0, alpha: 1, color: '#4A9EFF',
-    pointSize: 4, showBones: true, revealStaggerDur: 0.1, jitterAmp: 1.0,
-  });
-  drawFaceMesh(ctx, lt + 3.0, {
-    cx: 1080, cy: 580, w: 200, h: 260,
-    inAt: 0, alpha: 0.75, density: 0.55, jitterAmp: 0.5,
-  });
-  drawCrosshair(ctx, {
-    cx: 1080, cy: 530, ringR: 56, armLen: 18,
-    color: '#4A9EFF', alpha: 0.6, pulseT: (lt * 0.6) % 1,
-  });
-  drawWaveform(ctx, lt + 3.0, {
-    x: 1020, y: 800, w: 700, h: 56,
-    alpha: 0.65, color: '#4A9EFF',
-    amplitude: 0.5, speed: 1.4, bars: 0, thickness: 2,
-  });
-  drawBioSidebar(ctx, lt + 3.0, { x: 1800, y: 280, w: 100, h: 540, alpha: 0.95 });
-  ctx.restore();
-
-  // ── FOUR CLAIMS on the LEFT ──
-  // Tertiary chrome
-  let s = slamInState(lt, { inAt: 0.05, dur: 0.28, offsetY: 8 });
-  if (s) {
-    drawTextBlock(ctx, '○ SIGNAL · MULTIMODAL · SYNCHRONIZED', {
-      x: 120, y: 220,
-      font: `500 12px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.85)', letterSpacing: 2.4,
-      opacity: s.opacity, translateY: s.ty,
-    });
+  // Don't render if image hasn't loaded
+  if (!trackingImageLoaded || !trackingImage) {
+    return;
   }
 
-  // PRIMARY 1 — "21 hand landmarks."
+  // Same viewport as Beat 1
+  const canvasW = 1920;
+  const imgW = canvasW * 0.60;
+  const imgH = imgW * (trackingImage.height / trackingImage.width);
+  const imgX = canvasW - imgW - 80;
+  const imgY = (1080 - imgH) / 2;
+  const vp = { x: imgX, y: imgY, w: imgW, h: imgH };
+
+  // Fade for exit transition
+  const fadeOut = 1 - clamp((lt - 5.20) / 0.40, 0, 1);
+
+  // Blue keypoint glow
+  ctx.save();
+  ctx.globalAlpha = fadeOut * 0.06;
+  const blueGlow = ctx.createRadialGradient(
+    vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 0.2,
+    vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 1.2
+  );
+  blueGlow.addColorStop(0, '#4A9EFF');
+  blueGlow.addColorStop(0.5, 'rgba(74, 158, 255, 0.3)');
+  blueGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = blueGlow;
+  ctx.fillRect(vp.x - 200, vp.y - 200, vp.w + 400, vp.h + 400);
+  ctx.restore();
+
+  // Draw tracking image
+  ctx.save();
+  ctx.globalAlpha = fadeOut;
+  ctx.drawImage(trackingImage, vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // Dark vignette
+  ctx.save();
+  ctx.globalAlpha = fadeOut * 0.5;
+  const vignetteGrad = ctx.createRadialGradient(
+    vp.x + vp.w / 2, vp.y + vp.h / 2, Math.min(vp.w, vp.h) * 0.4,
+    vp.x + vp.w / 2, vp.y + vp.h / 2, Math.max(vp.w, vp.h) * 0.8
+  );
+  vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+  ctx.fillStyle = vignetteGrad;
+  ctx.fillRect(vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // Labels
+  const pulse = 0.5 + 0.5 * Math.sin((lt + 3.0) * 5.2);
+  ctx.save();
+  ctx.globalAlpha = fadeOut;
+  ctx.shadowColor = '#4A9EFF';
+  ctx.shadowBlur = 12 * pulse;
+  ctx.fillStyle = '#4A9EFF';
+  ctx.beginPath();
+  ctx.arc(vp.x + 16, vp.y - 20, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.font = `500 11px ${FONT_MONO}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '2.2px';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#4A9EFF';
+  ctx.fillText('CAM-01 · DIRECT OBSERVATION · LIVE', vp.x + 28, vp.y - 20);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = fadeOut;
+  ctx.font = `500 10px ${FONT_MONO}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(74, 158, 255, 0.85)';
+  ctx.fillText('30 FPS · 1080p', vp.x + vp.w - 12, vp.y + vp.h + 12);
+  ctx.restore();
+
+  // Hairline frame
+  ctx.save();
+  ctx.globalAlpha = fadeOut;
+  ctx.strokeStyle = '#4A9EFF';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // ── FOUR CLAIMS on the LEFT — Enhanced with gradients and glows ──
+
+  // Tertiary chrome with glow
+  let s = slamInState(lt, { inAt: 0.05, dur: 0.28, offsetY: 8 });
+  if (s) {
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 220 + s.ty);
+    ctx.font = `600 13px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.8px';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('○ SIGNAL · MULTIMODAL · SYNCHRONIZED', 0, 0);
+    ctx.restore();
+  }
+
+  // PRIMARY 1 — "21 hand landmarks." with gradient and strong glow
   s = slamInState(lt, { inAt: 0.50, dur: 0.34, offsetY: 26, fromScale: 0.95, blurPx: 3,
                          outAt: 5.20, outDur: 0.35 });
   const c21 = countUpValue(lt, { inAt: 0.55, dur: 0.42, from: 0, to: 21, decimals: 0, punchScale: 1.04 });
   if (s && c21) {
-    drawTextBlock(ctx, `${c21.display} hand landmarks.`, {
-      x: 120, y: 290,
-      font: `800 64px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -0.96,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c21.scale,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 290 + s.ty);
+    ctx.scale(s.scale * c21.scale, s.scale * c21.scale);
+    if (s.blur > 0) ctx.filter = `blur(${s.blur}px)`;
+
+    ctx.font = `900 72px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    // Number in electric blue with strong glow
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 32;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText(c21.display, 0, 0);
+
+    // Text in white with subtle glow
+    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ffffff';
+    const numWidth = ctx.measureText(c21.display).width;
+    ctx.fillText(' hand landmarks.', numWidth, 0);
+
+    ctx.restore();
   }
 
-  // PRIMARY 2 — "468 facial landmarks."
+  // PRIMARY 2 — "468 facial landmarks." with gradient
   s = slamInState(lt, { inAt: 1.70, dur: 0.34, offsetY: 26, fromScale: 0.95, blurPx: 3,
                          outAt: 5.20, outDur: 0.35 });
   const c468 = countUpValue(lt, { inAt: 1.75, dur: 0.50, from: 0, to: 468, decimals: 0, punchScale: 1.04 });
   if (s && c468) {
-    drawTextBlock(ctx, `${c468.display} facial landmarks.`, {
-      x: 120, y: 400,
-      font: `800 64px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -0.96,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c468.scale,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 400 + s.ty);
+    ctx.scale(s.scale * c468.scale, s.scale * c468.scale);
+    if (s.blur > 0) ctx.filter = `blur(${s.blur}px)`;
+
+    ctx.font = `900 72px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.44px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    // Number in cyan with glow
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 32;
+    ctx.fillStyle = '#00D9FF';
+    ctx.fillText(c468.display, 0, 0);
+
+    // Text in white
+    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ffffff';
+    const numWidth = ctx.measureText(c468.display).width;
+    ctx.fillText(' facial landmarks.', numWidth, 0);
+
+    ctx.restore();
   }
 
-  // PRIMARY 3 — "Gaze. Pinch. Symmetry. Voice."
+  // PRIMARY 3 — "Gaze. Pinch. Symmetry. Voice." with gradient fill
   s = slamInState(lt, { inAt: 2.90, dur: 0.34, offsetY: 26, fromScale: 0.95, blurPx: 3,
                          outAt: 5.20, outDur: 0.35 });
   if (s) {
-    drawTextBlock(ctx, 'Gaze. Pinch. Symmetry. Voice.', {
-      x: 120, y: 510,
-      font: `800 56px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -0.84,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 510 + s.ty);
+    ctx.scale(s.scale, s.scale);
+    if (s.blur > 0) ctx.filter = `blur(${s.blur}px)`;
+
+    ctx.font = `900 60px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.2px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    // Gradient from blue to cyan
+    const grad = ctx.createLinearGradient(0, 0, 600, 0);
+    grad.addColorStop(0, '#4A9EFF');
+    grad.addColorStop(0.5, '#00D9FF');
+    grad.addColorStop(1, '#4A9EFF');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = grad;
+    ctx.fillText('Gaze. Pinch. Symmetry. Voice.', 0, 0);
+
+    ctx.restore();
   }
 
-  // Divider
+  // Divider with stronger glow
   drawGlowLine(ctx, lt, {
-    x: 124, y: 630, length: 700, thickness: 1,
-    inAt: 4.00, drawDur: 0.34, color: 'rgba(74,158,255,0.42)', glow: 4,
+    x: 124, y: 630, length: 700, thickness: 2,
+    inAt: 4.00, drawDur: 0.34, color: '#4A9EFF', glow: 16,
     outAt: 5.20, outDur: 0.35,
   });
 
-  // PRIMARY accent — mono BV_BLUE
+  // PRIMARY accent — mono with pulsing glow
   s = slamInState(lt, { inAt: 4.10, dur: 0.32, offsetY: 14, fromScale: 0.97, blurPx: 2,
                          outAt: 5.20, outDur: 0.35 });
   if (s) {
-    drawTextBlock(ctx, 'ALL CAPTURED. SIMULTANEOUSLY.', {
-      x: 120, y: 656,
-      font: `500 22px ${FONT_MONO}`,
-      color: '#4A9EFF', letterSpacing: 4.84,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-    });
+    const pulse = 0.7 + 0.3 * Math.sin((lt - 4.10) * 6);
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 656 + s.ty);
+    ctx.scale(s.scale, s.scale);
+    if (s.blur > 0) ctx.filter = `blur(${s.blur}px)`;
+
+    ctx.font = `700 26px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '5.2px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 24 * pulse;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('ALL CAPTURED. SIMULTANEOUSLY.', 0, 0);
+
+    ctx.restore();
   }
 
-  // TERTIARY — small mono metadata bottom
+  // TERTIARY — with tech glow
   s = slamInState(lt, { inAt: 4.40, dur: 0.30, offsetY: 8 });
   if (s) {
-    drawTextBlock(ctx, '[ FRAME-SYNC · 30FPS · CV PIPELINE · LATENCY <40MS ]', {
-      x: 120, y: 700,
-      font: `500 11px ${FONT_MONO}`,
-      color: 'rgba(255,255,255,0.42)', letterSpacing: 1.8,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 700 + s.ty);
+    ctx.font = `500 12px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.4px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = 'rgba(0, 217, 255, 0.75)';
+    ctx.fillText('[ FRAME-SYNC · 30FPS · CV PIPELINE · LATENCY <40MS ]', 0, 0);
+    ctx.restore();
   }
 }
 
 function renderBlock3Canvas(ctx, t) {
   if (t < 18.0 || t > 27.0) return;
 
-  // Section chrome (Beat 2)
-  if (t >= 21.40 && t < 26.50) drawSectionLabel(ctx, t, '§ 05 · Multimodal', { inAt: 21.40, outAt: 26.10 });
+  // Section label removido
 
   renderBlock3Beat1(ctx, t);
   renderBlock3Beat2(ctx, t);

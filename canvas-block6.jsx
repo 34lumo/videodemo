@@ -60,44 +60,62 @@ function renderBlock6Beat1(ctx, t) {
   // Shooting line
   drawShootingLineB6(ctx, lt, { inAt: 0.04, dur: 0.10, trailDur: 0.22, y: 210, length: 1920 });
 
-  // €0 hero — POP center
+  // €0 hero — POP center with gradient and glow
   const s = popInState(lt, { inAt: 0.20, dur: 0.10, fromScale: 1.22, outAt: 1.85, outDur: 0.20 });
   if (s) {
     ctx.save();
     ctx.globalAlpha = s.opacity;
     ctx.translate(960, 360);
     ctx.scale(s.scale, s.scale);
-    ctx.font = `900 280px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-11.2px';
+    ctx.font = `900 320px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-12.8px';
     ctx.textBaseline = 'top'; ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
+
+    const grad = ctx.createLinearGradient(-200, 0, 200, 0);
+    grad.addColorStop(0, '#5FE5FF');
+    grad.addColorStop(0.5, '#00D9FF');
+    grad.addColorStop(1, '#00B8DB');
+
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 50;
+    ctx.fillStyle = grad;
     ctx.fillText('€0', 0, 0);
     ctx.restore();
   }
 
-  drawTextLetteredT(ctx, lt, 'HARDWARE COST', {
-    x: 960, y: 680, align: 'center',
-    font: `500 20px ${FONT_MONO}`,
-    color: '#4A9EFF', letterSpacing: 5.6,
-    inAt: 0.32, totalDur: 0.33,
-    outAt: 1.85, outDur: 0.20,
-  });
+  // Enhanced lettered text with stronger glow
+  const sLabel = popInState(lt, { inAt: 0.32, dur: 0.08, fromScale: 1.12, outAt: 1.85, outDur: 0.20 });
+  if (sLabel) {
+    ctx.save();
+    ctx.globalAlpha = sLabel.opacity;
+    ctx.translate(960, 680);
+    ctx.scale(sLabel.scale, sLabel.scale);
+    ctx.font = `700 24px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '6.4px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('HARDWARE COST', 0, 0);
+    ctx.restore();
+  }
 
-  // 4 scattered tertiary labels
-  drawScatterLabelB6(ctx, lt, { text: 'No wearables',    x: 460,  y: 380, inAt: 0.55, outAt: 1.30, outDur: 0.18, fontSize: 16, letterSpacing: 3.52 });
-  drawScatterLabelB6(ctx, lt, { text: 'No sensors',      x: 1340, y: 380, inAt: 0.65, outAt: 1.30, outDur: 0.18, fontSize: 16, letterSpacing: 3.52 });
-  drawScatterLabelB6(ctx, lt, { text: 'No setup',        x: 460,  y: 640, inAt: 0.75, outAt: 1.30, outDur: 0.18, fontSize: 16, letterSpacing: 3.52 });
-  drawScatterLabelB6(ctx, lt, { text: 'No installation', x: 1340, y: 640, inAt: 0.85, outAt: 1.30, outDur: 0.18, fontSize: 16, letterSpacing: 3.52 });
+  // Scattered labels removidos
 
-  // Tertiary system tag
+  // Tertiary system tag with cyan glow
   const sT = slamInState(lt, { inAt: 0.10, dur: 0.30, offsetY: 8 });
   if (sT) {
-    drawTextBlock(ctx, '○ DEPLOYMENT · BROWSER-NATIVE · NO INSTALL', {
-      x: 960, y: 920, align: 'center',
-      font: `500 12px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.65)', letterSpacing: 2.6,
-      opacity: sT.opacity, translateY: sT.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = sT.opacity;
+    ctx.translate(960, 920 + sT.ty);
+    ctx.font = `600 14px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3.2px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = 'rgba(0, 217, 255, 0.9)';
+    ctx.fillText('○ DEPLOYMENT · BROWSER-NATIVE · NO INSTALL', 0, 0);
+    ctx.restore();
   }
 }
 
@@ -123,41 +141,82 @@ function renderBlock6Beat2(ctx, t) {
     ctx.restore();
   }
 
-  // "60" slams from above
+  // "60" slams from above with CINEMATIC IMPACT
   const s = slamFromAboveState(lt, { inAt: 0.10, dur: 0.42, fromY: -110, overshootY: 10 });
+
+  // Pulse wave on impact
+  if (lt > 0.50) {
+    drawPulseWave(ctx, lt, { cx: 960, cy: 440, inAt: 0.52, speed: 0.8, maxRadius: 600 });
+  }
+
+  // Lens flare
+  if (lt > 0.52) {
+    drawLensFlare(ctx, lt, { x: 960, y: 380, inAt: 0.52, dur: 1.2, intensity: 0.8 });
+  }
+
+  // Glitch effect on landing
+  if (lt > 0.52 && lt < 0.67) {
+    drawGlitchEffect(ctx, lt, { inAt: 0.52, dur: 0.15, intensity: 8 });
+  }
+
   if (s) {
     ctx.save();
     ctx.globalAlpha = s.opacity;
     ctx.translate(880, 280 + s.ty);
-    ctx.font = `900 320px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-12.8px';
+    ctx.font = `900 360px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-14.4px';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ffffff';
+
+    const grad = ctx.createLinearGradient(-150, 0, 150, 0);
+    grad.addColorStop(0, '#6BB3FF');
+    grad.addColorStop(0.5, '#4A9EFF');
+    grad.addColorStop(1, '#3D8FE6');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 60;
+    ctx.fillStyle = grad;
     ctx.fillText('60', 0, 0);
     ctx.restore();
   }
 
-  drawTextLetteredT(ctx, lt, 'SECONDS PER SESSION', {
-    x: 880, y: 620, align: 'left',
-    font: `500 20px ${FONT_MONO}`,
-    color: '#4A9EFF', letterSpacing: 5.2,
-    inAt: 0.50, totalDur: 0.42,
-  });
+  // Light leak
+  if (lt < 2.0) {
+    drawLightLeak(ctx, lt, { inAt: 0.10, dur: 1.8, side: 'right' });
+  }
 
-  drawScatterLabelB6(ctx, lt, { text: 'Daily adherence',        x: 830, y: 300, inAt: 0.65, fontSize: 20, letterSpacing: 4.4 });
-  drawScatterLabelB6(ctx, lt, { text: 'Home environment',       x: 830, y: 372, inAt: 0.80, fontSize: 20, letterSpacing: 4.4 });
-  drawScatterLabelB6(ctx, lt, { text: 'No clinician present',   x: 830, y: 444, inAt: 0.95, fontSize: 20, letterSpacing: 4.4 });
-  drawScatterLabelB6(ctx, lt, { text: 'Full biomarker capture', x: 830, y: 516, inAt: 1.10, fontSize: 20, letterSpacing: 4.4 });
+  // Enhanced label with stronger glow
+  const sLabel = popInState(lt, { inAt: 0.50, dur: 0.08, fromScale: 1.12 });
+  if (sLabel) {
+    ctx.save();
+    ctx.globalAlpha = sLabel.opacity;
+    ctx.translate(880, 620);
+    ctx.scale(sLabel.scale, sLabel.scale);
+    ctx.font = `700 24px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '6.0px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('SECONDS PER SESSION', 0, 0);
+    ctx.restore();
+  }
 
-  // Tertiary timestamp
+  // Scatter labels removidos para evitar sobreposición
+
+  // Tertiary timestamp with cyan glow
   const sT = slamInState(lt, { inAt: 0.04, dur: 0.30, offsetY: 8 });
   if (sT) {
-    drawTextBlock(ctx, 'T-MINUS · 00:00 ──── 01:00', {
-      x: 960, y: 920, align: 'center',
-      font: `500 12px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.65)', letterSpacing: 3.2,
-      opacity: sT.opacity, translateY: sT.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = sT.opacity;
+    ctx.translate(960, 920 + sT.ty);
+    ctx.font = `600 14px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3.6px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = 'rgba(0, 217, 255, 0.85)';
+    ctx.fillText('T-MINUS · 00:00 ──── 01:00', 0, 0);
+    ctx.restore();
   }
 }
 
@@ -179,7 +238,7 @@ function renderBlock6Beat3(ctx, t) {
     color: '#4A9EFF', thickness: 1.5, alpha: 0.55,
   });
 
-  // "14" discrete count
+  // "14" discrete count with gradient
   const values = [0, 3, 7, 11, 14];
   const frameDur = 0.07;
   const popS = popInState(lt, { inAt: 0.10, dur: 0.08, fromScale: 1.15, outAt: 2.85, outDur: 0.20 });
@@ -190,61 +249,74 @@ function renderBlock6Beat3(ctx, t) {
     ctx.globalAlpha = popS.opacity;
     ctx.translate(960, 280);
     ctx.scale(popS.scale, popS.scale);
-    ctx.font = `900 360px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-14.4px';
+    ctx.font = `900 400px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-16px';
     ctx.textBaseline = 'top'; ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
+
+    const grad = ctx.createLinearGradient(-200, 0, 200, 0);
+    grad.addColorStop(0, '#5FE5FF');
+    grad.addColorStop(0.5, '#00D9FF');
+    grad.addColorStop(1, '#00B8DB');
+
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 70;
+    ctx.fillStyle = grad;
     ctx.fillText(String(val), 0, 0);
     ctx.restore();
   }
 
-  // "clinical biomarkers." italic
+  // "clinical biomarkers." italic with gradient
   const cS = popInState(lt, { inAt: 0.50, dur: 0.16, fromScale: 1.08, outAt: 2.85, outDur: 0.20 });
   if (cS) {
     ctx.save();
     ctx.globalAlpha = cS.opacity;
     ctx.translate(960, 660);
     ctx.scale(cS.scale, cS.scale);
-    ctx.font = `italic 600 60px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-0.3px';
+    ctx.font = `italic 800 68px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.36px';
     ctx.textBaseline = 'top'; ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+
+    const grad = ctx.createLinearGradient(-300, 0, 300, 0);
+    grad.addColorStop(0, '#6BB3FF');
+    grad.addColorStop(0.5, '#4A9EFF');
+    grad.addColorStop(1, '#3D8FE6');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = grad;
     ctx.fillText('clinical biomarkers.', 0, 0);
     ctx.restore();
   }
 
-  // 14 scatter labels with random depth blur
-  const labels = [
-    { text: 'Pinch precision',      x: 280,  y: 250, depth: 0.0 },
-    { text: 'Hand opening',         x: 1640, y: 270, depth: 0.6 },
-    { text: 'Palm speed',           x: 220,  y: 440, depth: 0.4 },
-    { text: 'Movement smoothness',  x: 1720, y: 420, depth: 0.0 },
-    { text: 'Finger individuation', x: 440,  y: 195, depth: 0.7 },
-    { text: 'Range of motion',      x: 1500, y: 175, depth: 0.3 },
-    { text: 'Facial symmetry',      x: 720,  y: 140, depth: 0.0 },
-    { text: 'Smile symmetry',       x: 1180, y: 145, depth: 0.5 },
-    { text: 'Fixation heatmap',     x: 340,  y: 750, depth: 0.2 },
-    { text: 'Gaze asymmetry',       x: 1580, y: 720, depth: 0.7 },
-    { text: 'Dwell time',           x: 540,  y: 820, depth: 0.0 },
-    { text: 'Vocal stability',      x: 1420, y: 840, depth: 0.4 },
-    { text: 'Phonation quality',    x: 760,  y: 920, depth: 0.6 },
-    { text: 'Blink asymmetry',      x: 1200, y: 900, depth: 0.1 },
-  ];
-  const LABELS_OUT = 2.05;
-  labels.forEach((lbl, i) => {
-    drawScatterLabelB6(ctx, lt, {
-      text: lbl.text, x: lbl.x, y: lbl.y,
-      inAt: 0.55 + i * 0.075,
-      outAt: LABELS_OUT, outDur: 0.04,
-      fontSize: 15, letterSpacing: 3.3,
-      depth: lbl.depth,
-    });
-  });
+  // 14 scatter labels removidos
 
-  // Final italic closer
+  // Final italic closer with gradient
   const closerS = slamInState(lt, { inAt: 2.12, dur: 0.34, offsetY: 14, fromScale: 0.97, blurPx: 2,
                                       outAt: 2.85, outDur: 0.18 });
   if (closerS) {
+    ctx.save();
+    ctx.globalAlpha = closerS.opacity;
+    ctx.translate(960, 1000 + closerS.ty);
+    ctx.scale(closerS.scale, closerS.scale);
+    if (closerS.blur > 0) ctx.filter = `blur(${closerS.blur}px)`;
+    ctx.font = `italic 700 50px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+
+    const grad = ctx.createLinearGradient(-350, 0, 350, 0);
+    grad.addColorStop(0, '#6BB3FF');
+    grad.addColorStop(0.5, '#4A9EFF');
+    grad.addColorStop(1, '#3D8FE6');
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = grad;
+    ctx.fillText('Captured in a 60-second game.', 0, 0);
+    ctx.restore();
+  }
+
+  // Remove old drawTextBlock call
+  if (false && closerS) {
     drawTextBlock(ctx, 'Captured in a 60-second game.', {
       x: 960, y: 1000, align: 'center',
       font: `italic 500 42px ${FONT_SERIF}`,

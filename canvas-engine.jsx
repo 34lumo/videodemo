@@ -40,12 +40,17 @@ function CanvasComposition({ width = 1920, height = 1080, render }) {
       console.error('[BV] Canvas ref is null on mount');
       return;
     }
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Reducir DPR a 1 para mejor performance
+    const dpr = 1;
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true,
+      willReadFrequently: false
+    });
     if (!ctx) {
       console.error('[BV] Failed to get 2D context');
       return;
@@ -53,7 +58,7 @@ function CanvasComposition({ width = 1920, height = 1080, render }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.textBaseline = 'alphabetic';
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = 'medium';
     console.log('[BV] Canvas mounted',
       'logical:', width + 'x' + height,
       'backing:', canvas.width + 'x' + canvas.height,
@@ -87,14 +92,18 @@ function CanvasComposition({ width = 1920, height = 1080, render }) {
     return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
-  // Per-frame render
+  // Per-frame render con throttle
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !fontsReady) return;
-    const ctx = canvas.getContext('2d');
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const ctx = canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true
+    });
+    const dpr = 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Clear w/ pure black base
+
+    // Clear w/ pure black base - optimizado
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
 
@@ -738,31 +747,441 @@ function drawGhostTrail(ctx, t, text, opts, ghost = { at: 0, dur: 0.40,
 // Section chrome
 // ─────────────────────────────────────────────────────────────────────────────
 function drawSectionLabel(ctx, t, text, { inAt, outAt, x = 96, y = 86 }) {
-  if (t < inAt) return;
-  const local = t - inAt;
-  const tIn = clamp(local / 0.26, 0, 1);
-  const easedIn = Easing.easeOutBack(tIn);
-  let opacity = clamp(local / 0.12, 0, 1);
-  const ty = (1 - easedIn) * 6;
-  if (outAt != null && t > outAt) {
-    opacity = Math.min(opacity, 1 - Easing.easeInQuad(clamp((t - outAt) / 0.24, 0, 1)));
+  // Función deshabilitada - no dibujar section labels
+  return;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CINEMATIC EFFECTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Chromatic aberration effect for hero numbers
+function drawChromaticText(ctx, text, { x, y, font, opacity = 1, aberration = 2 }) {
+  ctx.save();
+  ctx.font = font;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '-12.8px';
+  ctx.textBaseline = 'top';
+
+  // Red channel
+  ctx.globalAlpha = opacity * 0.5;
+  ctx.fillStyle = '#ff0040';
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillText(text, x - aberration, y);
+
+  // Blue channel
+  ctx.fillStyle = '#00a0ff';
+  ctx.fillText(text, x + aberration, y);
+
+  // Main white channel
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = '#ffffff';
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// Lens flare effect
+function drawLensFlare(ctx, t, { x, y, inAt, dur = 0.8, intensity = 1 }) {
+  const dt = t - inAt;
+  if (dt < 0 || dt > dur) return;
+  const progress = dt / dur;
+  const opacity = Math.sin(progress * Math.PI) * intensity;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  // Core bright spot
+  const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, 80);
+  coreGrad.addColorStop(0, `rgba(100, 200, 255, ${opacity * 0.8})`);
+  coreGrad.addColorStop(0.3, `rgba(100, 200, 255, ${opacity * 0.3})`);
+  coreGrad.addColorStop(1, 'rgba(100, 200, 255, 0)');
+  ctx.fillStyle = coreGrad;
+  ctx.fillRect(x - 80, y - 80, 160, 160);
+
+  // Streaks
+  ctx.globalAlpha = opacity * 0.4;
+  ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+  ctx.fillRect(x - 200, y - 1, 400, 2);
+  ctx.fillRect(x - 1, y - 200, 2, 400);
+
+  ctx.restore();
+}
+
+// Light leak effect
+function drawLightLeak(ctx, t, { inAt, dur = 1.2, side = 'left' }) {
+  const dt = t - inAt;
+  if (dt < 0 || dt > dur) return;
+  const progress = Easing.easeOutQuad(dt / dur);
+  const opacity = Math.sin(progress * Math.PI) * 0.15;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  const grad = side === 'left'
+    ? ctx.createLinearGradient(0, 0, 400, 0)
+    : ctx.createLinearGradient(1920, 0, 1520, 0);
+
+  grad.addColorStop(0, `rgba(255, 180, 100, ${opacity})`);
+  grad.addColorStop(0.5, `rgba(100, 150, 255, ${opacity * 0.3})`);
+  grad.addColorStop(1, 'rgba(100, 150, 255, 0)');
+
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1920, 1080);
+  ctx.restore();
+}
+
+// Glitch effect - simplified to avoid canvas self-reference issues
+function drawGlitchEffect(ctx, t, { inAt, dur = 0.15, intensity = 10 }) {
+  const dt = t - inAt;
+  if (dt < 0 || dt > dur) return;
+
+  const glitchAmount = intensity * (1 - dt / dur);
+  const sliceCount = 8;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (let i = 0; i < sliceCount; i++) {
+    const y = (1080 / sliceCount) * i;
+    const height = 1080 / sliceCount;
+    const offset = (Math.random() - 0.5) * glitchAmount;
+
+    // Draw colored glitch lines instead of canvas copy
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = i % 2 === 0 ? '#ff0040' : '#00a0ff';
+    ctx.fillRect(0, y + Math.random() * height, 1920, 2);
+
+    if (Math.random() > 0.7) {
+      ctx.fillRect(offset, y, 1920, 1);
+    }
   }
-  if (opacity <= 0.001) return;
+  ctx.restore();
+}
+
+// Pulse wave from center
+function drawPulseWave(ctx, t, { cx, cy, inAt, speed = 1, color = '#4A9EFF', maxRadius = 600 }) {
+  if (!ctx || typeof t !== 'number') return;
+  const dt = t - inAt;
+  if (dt < 0) return;
+
+  const numWaves = 3;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  try {
+    for (let i = 0; i < numWaves; i++) {
+      const waveTime = (dt * speed - i * 0.3) % 2;
+      if (waveTime < 0 || waveTime > 1) continue;
+
+      const radius = Easing.easeOutCubic(waveTime) * maxRadius;
+      const opacity = (1 - waveTime) * 0.15;
+
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = opacity;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } catch (e) {
+    console.warn('[BV] drawPulseWave error:', e);
+  }
+  ctx.restore();
+}
+
+// iOS Notification - TAP & EXPAND TO FULLSCREEN (classic iOS transition)
+function drawIOSNotification(ctx, t, { inAt, stayDur = 2.5, exitDur = 0.2 }) {
+  const dt = t - inAt;
+  if (dt < 0) return;
+
+  // Animation timeline
+  const entryDur = 0.3;
+  const holdDur = 1.5; // Hold before tap
+  const tapDownDur = 0.08; // Scale down
+  const tapUpDur = 0.08; // Bounce back
+  const expandDur = 0.4; // Expand to fullscreen
+  const fadeDur = 0.3; // Fade to next scene
+
+  const tapStart = entryDur + holdDur;
+  const expandStart = tapStart + tapDownDur + tapUpDur;
+  const fadeStart = expandStart + expandDur;
+  const totalDur = fadeStart + fadeDur;
+
+  if (dt > totalDur) return;
+
+  let translateY = 0;
+  let opacity = 1;
+  let scale = 1;
+  let expandProgress = 0;
+  let fadeProgress = 0;
+
+  // Entry spring animation
+  if (dt < entryDur) {
+    const t = dt / entryDur;
+    const spring = Easing.easeOutBack(t);
+    translateY = -200 + spring * 200;
+    opacity = t;
+  }
+  // Tap down (scale to 97%)
+  else if (dt >= tapStart && dt < tapStart + tapDownDur) {
+    const tapT = (dt - tapStart) / tapDownDur;
+    scale = 1 - Easing.easeOutQuad(tapT) * 0.03;
+  }
+  // Bounce back to 100%
+  else if (dt >= tapStart + tapDownDur && dt < expandStart) {
+    const bounceT = (dt - tapStart - tapDownDur) / tapUpDur;
+    scale = 0.97 + Easing.easeOutBack(bounceT) * 0.03;
+  }
+  // Expand to fullscreen
+  else if (dt >= expandStart && dt < fadeStart) {
+    const expandT = (dt - expandStart) / expandDur;
+    expandProgress = Easing.easeOutCubic(expandT);
+  }
+  // Fade to next scene
+  else if (dt >= fadeStart) {
+    expandProgress = 1;
+    fadeProgress = (dt - fadeStart) / fadeDur;
+  }
+
+  ctx.save();
+
+  // FULL-SCREEN DARK OVERLAY (fades as we expand)
+  const overlayOpacity = (1 - expandProgress) * 0.6;
+  ctx.globalAlpha = opacity * overlayOpacity;
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // EXPANDING WHITE FILL - grows from notification to fullscreen
+  if (expandProgress > 0) {
+    const notifW = 680;
+    const notifH = 160;
+    const centerX = 960;
+    const centerY = 540 + translateY;
+
+    // Interpolate from notification size to fullscreen
+    const currentW = notifW + (1920 - notifW) * expandProgress;
+    const currentH = notifH + (1080 - notifH) * expandProgress;
+    const currentX = centerX - currentW / 2;
+    const currentY = centerY - currentH / 2;
+
+    // Fade from dark notification to bright white
+    const whiteness = expandProgress * 255;
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = `rgb(${whiteness}, ${whiteness}, ${whiteness})`;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 40 * (1 - expandProgress);
+    ctx.beginPath();
+    ctx.roundRect(currentX, currentY, currentW, currentH, 24 * (1 - expandProgress));
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Fade notification content as we expand
+    const contentOpacity = 1 - expandProgress;
+    if (contentOpacity > 0.01) {
+      drawNotificationContent(ctx, centerX - notifW / 2, centerY - notifH / 2, notifW, notifH, contentOpacity);
+    }
+  } else {
+    // Normal notification state
+    const notifW = 680;
+    const notifH = 160;
+    const notifX = (1920 - notifW * scale) / 2;
+    const notifY = (1080 - notifH * scale) / 2 + translateY;
+
+    ctx.globalAlpha = opacity;
+    ctx.save();
+    ctx.translate(notifX + (notifW * scale) / 2, notifY + (notifH * scale) / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-notifW / 2, -notifH / 2);
+
+    // DROP SHADOW
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetY = 20;
+
+    // Dark iOS background
+    ctx.fillStyle = 'rgba(28, 28, 30, 0.95)';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, notifW, notifH, 24);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    drawNotificationContent(ctx, 0, 0, notifW, notifH, 1);
+
+    ctx.restore();
+  }
+
+  // Final fade to next scene (white dissolves)
+  if (fadeProgress > 0) {
+    ctx.globalAlpha = 1 - fadeProgress;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 1920, 1080);
+  }
+
+  ctx.restore();
+}
+
+// Helper: Draw notification content (icon + text)
+function drawNotificationContent(ctx, x, y, w, h, opacity) {
   ctx.save();
   ctx.globalAlpha = opacity;
-  ctx.shadowColor = '#4A9EFF';
-  ctx.shadowBlur = 14;
-  ctx.fillStyle = '#4A9EFF';
+
+  // Gmail icon - 60x60px simplified classic design
+  const iconX = x + 28;
+  const iconY = y + 28;
+  const iconSize = 60;
+
+  // White background
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+  ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.arc(x + 4, y + ty - 1, 4, 0, Math.PI * 2);
+  ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
   ctx.fill();
+  ctx.restore();
+
+  // Gmail logo - simplified envelope design
+  ctx.save();
+  ctx.translate(iconX + iconSize / 2, iconY + iconSize / 2);
+
+  const logoScale = 0.6;
+  ctx.scale(logoScale, logoScale);
+
+  // Red envelope body
+  ctx.fillStyle = '#EA4335';
+  ctx.beginPath();
+  ctx.moveTo(-28, -12);
+  ctx.lineTo(-28, 18);
+  ctx.lineTo(28, 18);
+  ctx.lineTo(28, -12);
+  ctx.closePath();
+  ctx.fill();
+
+  // White fold - top part
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(-28, -12);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(28, -12);
+  ctx.lineTo(28, -16);
+  ctx.lineTo(0, 4);
+  ctx.lineTo(-28, -16);
+  ctx.closePath();
+  ctx.fill();
+
+  // Blue fold shadow - left
+  ctx.fillStyle = '#4285F4';
+  ctx.beginPath();
+  ctx.moveTo(-28, -12);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(0, 4);
+  ctx.lineTo(-28, -16);
+  ctx.closePath();
+  ctx.fill();
+
+  // Blue fold shadow - right
+  ctx.fillStyle = '#34A853';
+  ctx.beginPath();
+  ctx.moveTo(28, -12);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(0, 4);
+  ctx.lineTo(28, -16);
+  ctx.closePath();
+  ctx.fill();
+
+  // Yellow accent on top
+  ctx.fillStyle = '#FBBC04';
+  ctx.beginPath();
+  ctx.moveTo(-28, -16);
+  ctx.lineTo(0, 4);
+  ctx.lineTo(28, -16);
+  ctx.lineTo(0, -24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+
+  // Subtle border around icon
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
+  ctx.stroke();
+
+  // Blue unread dot with stronger glow
+  ctx.fillStyle = '#4A9EFF';
+  ctx.shadowColor = '#4A9EFF';
+  ctx.shadowBlur = 16;
+  ctx.beginPath();
+  ctx.arc(iconX + iconSize - 6, iconY + iconSize - 6, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner white dot for depth
   ctx.shadowBlur = 0;
-  ctx.font = `500 16px ${MONO}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '3.2px';
-  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(iconX + iconSize - 6, iconY + iconSize - 6, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Text content
+  const textX = iconX + iconSize + 24;
+  const textStartY = y + 32;
+
+  // App + timestamp - 18px
+  ctx.font = '500 18px ' + FONT_MONO;
+  ctx.fillStyle = '#8E8E93';
+  ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(255,255,255,0.62)';
-  ctx.fillText(text.toUpperCase(), x + 22, y + ty);
+  ctx.fillText('Gmail · now', textX, textStartY);
+
+  // Title - 26px bold white
+  ctx.font = '700 26px Inter, -apple-system, system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('New session report — Marco R.', textX, textStartY + 28);
+
+  // Body text - 21px grey
+  ctx.font = '400 21px Inter, -apple-system, system-ui, sans-serif';
+  ctx.fillStyle = '#AEAEB2';
+  ctx.fillText('Marco has completed his daily stroke session.', textX, textStartY + 64);
+  ctx.fillText('All markers within range. Report ready. ↗', textX, textStartY + 92);
+
+  ctx.restore();
+}
+
+// Enhanced dust with depth
+function drawEnhancedDust(ctx, t, alpha = 0.3, color = '#9bb6d6') {
+  if (!ctx || typeof t !== 'number') return;
+  const count = 60;
+  ctx.save();
+  try {
+    for (let i = 0; i < count; i++) {
+      const seed = i * 137.508; // Golden angle
+      const depth = (seed % 100) / 100; // 0-1 depth
+      const size = (1 + depth) * 2.5;
+      const speed = (0.5 + depth) * 20;
+      const x = ((seed * 73) % 1920);
+      const y = ((t * speed + seed * 83) % 1300) - 100;
+      const opacity = alpha * (0.3 + depth * 0.7);
+
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8 * depth;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } catch (e) {
+    console.warn('[BV] drawEnhancedDust error:', e);
+  }
   ctx.restore();
 }
 
@@ -1221,6 +1640,9 @@ Object.assign(window, {
   drawProgressArc, drawDataBar, drawCrosshair, drawHandKeypoints, drawFaceMesh,
   drawWaveform, drawGridSection, drawRingIndicator, drawClinicalFrame, drawCornerBrackets,
   drawRadialPulse,
+  // cinematic effects
+  drawChromaticText, drawLensFlare, drawLightLeak, drawGlitchEffect, drawPulseWave, drawEnhancedDust,
+  drawIOSNotification,
   // misc
   lerpKeyframes,
   FONT_SERIF, FONT_MONO,

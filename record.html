@@ -2,47 +2,74 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Between Visits — Canvas (60s motion graphics)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Between Visits — Recording (High Quality)</title>
+<meta name="viewport" content="width=1920, height=1080" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600;1,700;1,900&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600;1,700;1,900&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    margin: 0;
-    padding: 0;
+    width: 100%;
+    height: 100%;
     background: #000;
     color: #fff;
-    height: 100%;
     font-family: "Inter", system-ui, sans-serif;
-    /* Performance optimizations */
+    overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-  body {
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   #root {
-    position: fixed;
-    inset: 0;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
   }
   canvas {
-    /* GPU acceleration */
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto !important;
+    height: auto !important;
+    margin: auto;
+    object-fit: contain;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     will-change: transform;
-    /* Crisp rendering */
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
   }
+  /* Perfect centering in fullscreen */
+  body:fullscreen,
+  body:-webkit-full-screen,
+  body:-moz-full-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  body:fullscreen #root,
+  body:-webkit-full-screen #root,
+  body:-moz-full-screen #root {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Hide controls for clean recording */
+  .stage-controls { display: none !important; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
 <script type="text/babel" src="animations.jsx"></script>
 <script type="text/babel" src="canvas-engine.jsx"></script>
@@ -55,15 +82,6 @@
 <script type="text/babel" src="canvas-block7.jsx"></script>
 
 <script type="text/babel">
-  // Pure motion graphics — no images. Atmospheres shift mood per block.
-  //
-  // Transitions:
-  //   B1→B2: scan flash (built-in)
-  //   B2→B3: vertical wipe (built-in, end of B2)
-  //   B3→B4: geometry collapse (end of B3)
-  //   B4→B5: letterbox close+open (end of B4)
-  //   B5→B6: color flash (end of B5)
-  //   B6→B7: radial wipe (end of B6)
   function masterRender(ctx, t, W, H) {
     beginFrame(ctx);
 
@@ -71,31 +89,26 @@
     if (t < 11.0) {
       drawAtmosphereNavy(ctx, t, 1.0);
     } else if (t < 18.0) {
-      // B2 — navy blending into teal
       const blend = clamp((t - 11.0) / 1.5, 0, 1);
       drawAtmosphereNavy(ctx, t, 1.0 - blend * 0.5);
       drawAtmosphereTeal(ctx, t, blend * 0.7);
     } else if (t < 27.0) {
-      // B3 — deep teal
       drawAtmosphereTeal(ctx, t, 1.0);
     } else if (t < 39.0) {
-      // B4 — pure black background throughout
-      // No atmosphere, no white — just pure #000000 darkness
+      // B4 — pure black
     } else if (t < 42.0) {
-      // B5 Beat 1 — desat grey + black on right
       drawAtmosphereDesat(ctx, t, 1.0);
     } else if (t < 46.0) {
-      // B5 Beat 2 — pure black (no atmosphere)
+      // B5 Beat 2 — pure black
     } else if (t < 53.0) {
-      // B6 — deep indigo
       drawAtmosphereIndigo(ctx, t, 1.0);
     } else {
-      // B7 — pure black, earned. No atmosphere added.
+      // B7 — pure black
     }
 
-    // ── ENHANCED DUST with depth (reduced for performance) ──
-    if (t < 39.0) drawEnhancedDust(ctx, t, 0.25, '#9bb6d6');
-    else if (t >= 46.0 && t < 53.0) drawEnhancedDust(ctx, t, 0.22, '#9bb6d6');
+    // ── DUST (reduced for performance) ──
+    if (t < 39.0) drawEnhancedDust(ctx, t, 0.2, '#9bb6d6');
+    else if (t >= 46.0 && t < 53.0) drawEnhancedDust(ctx, t, 0.18, '#9bb6d6');
 
     // ── BLOCKS ──
     renderBlock1Canvas(ctx, t);
@@ -106,16 +119,15 @@
     renderBlock6Canvas(ctx, t);
     renderBlock7Canvas(ctx, t);
 
-    // ── Global texture pass (reduced grain for smoother performance) ──
+    // ── Texture (minimal for smooth playback) ──
     if (t < 53.0) {
-      drawVignette(ctx, 0.35);
-      drawGrain(ctx, t, 0.018);
+      drawVignette(ctx, 0.3);
+      drawGrain(ctx, t, 0.015);
     } else {
-      // Block 7 — minimal grain
-      drawGrain(ctx, t, 0.012);
+      drawGrain(ctx, t, 0.01);
     }
 
-    // ── Subtle glitch effects on major transitions ──
+    // ── Glitch effects ──
     if (Math.abs(t - 11.0) < 0.1) drawGlitchEffect(ctx, t, { inAt: 11.0, dur: 0.08, intensity: 6 });
     if (Math.abs(t - 18.0) < 0.1) drawGlitchEffect(ctx, t, { inAt: 18.0, dur: 0.08, intensity: 6 });
     if (Math.abs(t - 27.0) < 0.1) drawGlitchEffect(ctx, t, { inAt: 27.0, dur: 0.08, intensity: 6 });
@@ -132,7 +144,7 @@
         loop={false}
         autoplay={false}
         fps={60}
-        persistKey="bv:canvas:full:v3"
+        persistKey="bv:record:v1"
       >
         <CanvasComposition width={1920} height={1080} render={masterRender} />
       </Stage>

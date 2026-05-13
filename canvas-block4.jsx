@@ -1,6 +1,23 @@
 // canvas-block4.jsx — Block 4: The Clinical Report. 0:27 → 0:39
-// Atmosphere: very dark warm amber (the "clinician's world" color shift).
+// Atmosphere: very dark warm amber → WHITE (after notification tap at 29.5s)
 // Five sub-beats with procedural CRI ring, metric cards, waveform, all drawn.
+
+// Load dashboard screenshot
+let dashboardImage = null;
+let dashboardImageLoaded = false;
+(function loadDashboardImage() {
+  const img = new Image();
+  img.onload = function() {
+    dashboardImage = img;
+    dashboardImageLoaded = true;
+    console.log('✅ dashboardmedico.png loaded successfully! Width:', img.width, 'Height:', img.height);
+  };
+  img.onerror = function() {
+    console.error('❌ Failed to load dashboardmedico.png');
+  };
+  img.src = './dashboardmedico.png';
+})();
+
 
 function renderBlock4Opening(ctx, t) {
   // Stage 27.0 → 30.0
@@ -31,16 +48,7 @@ function renderBlock4Opening(ctx, t) {
     ctx.restore();
   }
 
-  drawTextLetteredT(ctx, lt,
-    'GENERATING CLINICAL REPORT · SESSION COMPLETE · 14 BIOMARKERS CAPTURED',
-    {
-      x: 960, y: 528, align: 'center',
-      font: `500 17px ${FONT_MONO}`,
-      color: '#4A9EFF',
-      letterSpacing: 4.08,
-      inAt: 0.55, totalDur: 1.55,
-      outAt: 2.85, outDur: 0.20,
-    });
+  // Clinical report text removido
 
   // Tertiary: line numbers fading in as the typewriter advances
   if (lt > 1.10) {
@@ -61,211 +69,408 @@ function renderBlock4Dashboard(ctx, t) {
   if (t < 30.0 || t > 35.05) return;
   const lt = t - 30.0;
 
-  // RIGHT SIDE: procedural CRI ring panel
-  const panelX = 1040, panelY = 100, panelW = 760, panelH = 880;
-
-  // Panel background
-  let panelFade = clamp(lt / 0.55, 0, 1) * (1 - clamp((lt - 4.85) / 0.20, 0, 1));
-  ctx.save();
-  ctx.globalAlpha = panelFade;
-  // Inset panel — slightly warm
-  const panelG = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
-  panelG.addColorStop(0, 'rgba(38, 24, 12, 0.92)');
-  panelG.addColorStop(1, 'rgba(20, 12, 6, 0.95)');
-  ctx.fillStyle = panelG;
-  ctx.fillRect(panelX, panelY, panelW, panelH);
-
-  // Grid backdrop
-  drawGridSection(ctx, {
-    x: panelX, y: panelY, w: panelW, h: panelH,
-    cellSize: 56, color: 'rgba(74,158,255,0.06)', alpha: 1,
-  });
-  ctx.restore();
-
-  // Slide-in offset (panel slides from +260 over first 0.55s)
-  let slideX = 0;
-  if (lt < 0.05) slideX = 260;
-  else {
-    const tt = clamp((lt - 0.05) / 0.55, 0, 1);
-    slideX = (1 - Easing.easeOutBack(tt)) * 260;
+  // Don't render if image hasn't loaded
+  if (!dashboardImageLoaded || !dashboardImage) {
+    return;
   }
-  const offsetX = slideX;
 
-  // Beat 2 zoom state: when lt > 3.0, ring grows and rest of panel blurs
-  const zoom = clamp((lt - 3.0) / 0.70, 0, 1);
-  const easedZoom = Easing.easeInOutCubic(zoom);
-  const ringR = 110 + easedZoom * 200;
-  const ringCX = panelX + offsetX + 180 + easedZoom * 200;
-  const ringCY = panelY + 240 + easedZoom * 200;
+  // ── APP OPENING EXPANSION ANIMATION ──
+  // Dashboard starts small (notification size) and expands to fill screen over 400ms
+  // Like tapping a notification on iPhone and the app opens fullscreen
 
-  // CRI ring
-  if (lt > 0.10) {
-    const ringFade = clamp((lt - 0.10) / 0.30, 0, 1) * panelFade;
-    const ringPct = countUpValue(lt, { inAt: 0.20, dur: 0.85, from: 0, to: 0.86, decimals: 2, punchScale: 1, ease: Easing.easeOutExpo });
-    const pct = ringPct ? parseFloat(ringPct.display) : 0;
+  const canvasW = 1920;
+  const canvasH = 1080;
+
+  // Final size: Original aspect ratio, centered, not too big
+  // Dashboard image is 1672x941, keep it readable but not stretched
+  const finalW = 1200; // Reasonable width to see details
+  const finalH = finalW * (dashboardImage.height / dashboardImage.width); // Maintain aspect ratio
+
+  // Starting size: notification card size (small)
+  const startW = 420;
+  const startH = 180;
+
+  // Expansion animation (0-400ms with ease-out + overshoot)
+  const expansionDur = 0.40;
+  const overshootStart = 0.40;
+  const overshootDur = 0.06;
+
+  let imgW, imgH;
+
+  if (lt < expansionDur) {
+    // Expanding phase - ease out
+    const progress = lt / expansionDur;
+    const eased = Easing.easeOutCubic(progress);
+    imgW = startW + (finalW - startW) * eased;
+    imgH = startH + (finalH - startH) * eased;
+  } else if (lt < overshootStart + overshootDur) {
+    // Overshoot phase - tiny 2px bounce
+    const overshootProgress = (lt - overshootStart) / overshootDur;
+    const overshootAmount = 2 * (1 - overshootProgress); // 2px that reduces to 0
+    imgW = finalW + overshootAmount;
+    imgH = finalH + overshootAmount;
+  } else {
+    // Settled at final size
+    imgW = finalW;
+    imgH = finalH;
+  }
+
+  // Always centered
+  const imgX = (canvasW - imgW) / 2;
+  const imgY = (canvasH - imgH) / 2;
+  const vp = { x: imgX, y: imgY, w: imgW, h: imgH };
+
+  // Exit fade for entire dashboard
+  const exitFade = 1 - clamp((lt - 4.85) / 0.20, 0, 1);
+
+  // ── Warm cream/beige glow bleeding into background ──
+  const glowFade = clamp(lt / 0.5, 0, 1) * exitFade;
+  if (glowFade > 0.01) {
     ctx.save();
-    ctx.globalAlpha = ringFade;
-    // Background ring track
-    drawProgressArc(ctx, {
-      cx: ringCX, cy: ringCY, r: ringR, thickness: 14,
-      sweep: Math.PI * 2, pct: 1,
-      trackColor: 'rgba(255,255,255,0.10)',
-      fillColor: 'rgba(255,255,255,0.10)',
-      glow: 0,
-    });
-    drawProgressArc(ctx, {
-      cx: ringCX, cy: ringCY, r: ringR, thickness: 14,
-      sweep: Math.PI * 2, pct,
-      trackColor: 'rgba(255,255,255,0)',
-      fillColor: '#4A9EFF',
-      glow: 18,
-    });
-    // Center number
-    ctx.font = `900 ${48 + easedZoom * 80}px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.5px';
-    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('86', ringCX, ringCY);
-    // "/100" beneath
-    ctx.font = `500 ${10 + easedZoom * 14}px ${FONT_MONO}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '2px';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText('/100', ringCX, ringCY + 36 + easedZoom * 40);
+    ctx.globalAlpha = glowFade * 0.08; // 8% opacity max
+    const warmGlow = ctx.createRadialGradient(
+      vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 0.2,
+      vp.x + vp.w / 2, vp.y + vp.h / 2, vp.w * 1.2
+    );
+    warmGlow.addColorStop(0, '#C8A882');
+    warmGlow.addColorStop(0.5, 'rgba(200, 168, 130, 0.3)');
+    warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = warmGlow;
+    ctx.fillRect(vp.x - 200, vp.y - 200, vp.w + 400, vp.h + 400);
     ctx.restore();
   }
 
-  // Lower panel: 4 mini bars (domain breakdown teaser) — blurred when zoomed
-  if (lt > 0.50) {
-    const fade = clamp((lt - 0.50) / 0.40, 0, 1) * panelFade * (1 - easedZoom * 0.8);
-    if (fade > 0.02) {
+  // ── Draw the dashboard image (fully opaque during expansion) ──
+  ctx.save();
+  ctx.globalAlpha = exitFade;
+  ctx.drawImage(dashboardImage, vp.x, vp.y, vp.w, vp.h);
+  ctx.restore();
+
+  // ── Large "MEDICAL VIEW" title above dashboard ──
+  const titleAppear = frameAppear - 0.1; // Slightly before frame
+  if (lt >= titleAppear && exitFade > 0.01) {
+    const titleT = lt - titleAppear;
+    const titleFade = clamp(titleT / 0.3, 0, 1) * exitFade;
+    const titleSlide = (1 - clamp(titleT / 0.35, 0, 1)) * 30; // Slide down
+
+    if (titleFade > 0.01) {
       ctx.save();
-      ctx.globalAlpha = fade;
-      if (easedZoom > 0.1) ctx.filter = `blur(${easedZoom * 4.5}px)`;
-      const bars = [
-        { l: 'PINCH', v: 88 }, { l: 'HAND OPENING', v: 84 },
-        { l: 'SMILE', v: 82 }, { l: 'VOICE', v: 90 },
-      ];
-      const colY = panelY + 500;
-      const colH = 56;
-      bars.forEach((b, i) => {
-        const by = colY + i * (colH + 18);
-        const bx = panelX + offsetX + 40;
-        const bw = panelW - 80;
-        // Label + value
-        ctx.font = `500 13px ${FONT_MONO}`;
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '2.4px';
-        ctx.textBaseline = 'top'; ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(255,255,255,0.65)';
-        ctx.fillText(b.l, bx, by);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#4A9EFF';
-        ctx.fillText(`${b.v} / 100`, bx + bw, by);
-        // Bar
-        drawDataBar(ctx, { x: bx, y: by + 22, w: bw, h: 4, pct: b.v / 100,
-          trackColor: 'rgba(255,255,255,0.08)', fillColor: '#4A9EFF', glow: 5 });
-      });
+      ctx.globalAlpha = titleFade;
+      ctx.translate(960, vp.y - 90 + titleSlide);
+
+      // Main title with gradient
+      ctx.font = `900 56px ${FONT_SERIF}`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '-2.24px';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      const grad = ctx.createLinearGradient(-200, 0, 200, 0);
+      grad.addColorStop(0, '#6BB3FF');
+      grad.addColorStop(0.5, '#4A9EFF');
+      grad.addColorStop(1, '#3D8FE6');
+
+      ctx.shadowColor = '#4A9EFF';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = grad;
+      ctx.fillText('MEDICAL VIEW', 0, 0);
+
+      // Subtitle below
+      ctx.shadowBlur = 0;
+      ctx.font = `600 14px ${FONT_MONO}`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '3.6px';
+      ctx.fillStyle = 'rgba(74, 158, 255, 0.8)';
+      ctx.fillText('SESSION COMPLETE · REPORT GENERATED', 0, 32);
+
       ctx.restore();
     }
   }
 
-  // Hairline frame
-  drawClinicalFrame(ctx, lt, {
-    vpX: panelX + offsetX, vpY: panelY, vpW: panelW, vpH: panelH,
-    inAt: 0.50, totalDur: 0.04, trace: false, color: '#4A9EFF',
-    outAt: 4.85, outDur: 0.20,
-  });
-  drawCornerBrackets(ctx, lt, {
-    vpX: panelX + offsetX, vpY: panelY, vpW: panelW, vpH: panelH,
-    inAt: 0.55, dur: 0.30,
-  });
+  // ── Enhanced border with glow appears after expansion settles ──
+  const frameAppear = overshootStart + overshootDur; // 0.46s
+  if (lt >= frameAppear && exitFade > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = exitFade;
 
-  // ── LEFT TEXT — Beat 1 ──
-  let s = slamInState(lt, { inAt: 0.10, dur: 0.28, offsetY: 8 });
-  if (s && lt < 3.0) {
-    drawTextBlock(ctx, '● REPORT · DELIVERY · SECURE', {
-      x: 120, y: 234,
-      font: `500 12px ${FONT_MONO}`,
-      color: 'rgba(74,158,255,0.85)', letterSpacing: 2.4,
-      opacity: s.opacity * (1 - clamp((lt - 2.80) / 0.30, 0, 1)),
-      translateY: s.ty,
-    });
-  }
+    // Outer glow
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 20;
+    ctx.strokeStyle = '#4A9EFF';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(vp.x, vp.y, vp.w, vp.h);
 
-  s = slamInState(lt, { inAt: 0.40, dur: 0.34, offsetY: 28, fromScale: 0.95,
-                         outAt: 2.80, outDur: 0.30 });
-  if (s) {
-    drawTextBlock(ctx, 'Session ends.', {
-      x: 120, y: 280,
-      font: `900 108px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -2.7,
-      opacity: s.opacity, scale: s.scale, translateY: s.ty,
-    });
-  }
-  s = slamInState(lt, { inAt: 0.80, dur: 0.34, offsetY: 22, outAt: 2.80, outDur: 0.30 });
-  if (s) {
-    drawTextBlock(ctx, 'Clinician receives this.', {
-      x: 120, y: 410,
-      font: `700 68px ${FONT_SERIF}`,
-      color: 'rgba(255,255,255,0.88)', letterSpacing: -1.02,
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-  drawGlowLine(ctx, lt, {
-    x: 124, y: 526, length: 520, thickness: 1,
-    inAt: 1.20, drawDur: 0.32, color: 'rgba(74,158,255,0.45)', glow: 3,
-    outAt: 2.80, outDur: 0.30,
-  });
-  s = slamInState(lt, { inAt: 1.32, dur: 0.30, offsetY: 12, outAt: 2.80, outDur: 0.30 });
-  if (s) {
-    drawTextBlock(ctx, 'AUTOMATICALLY · EVERY SESSION', {
-      x: 120, y: 554,
-      font: `500 22px ${FONT_MONO}`,
-      color: '#4A9EFF', letterSpacing: 4.84,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    // Inner border line
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(74, 158, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(vp.x + 3, vp.y + 3, vp.w - 6, vp.h - 6);
+
+    ctx.restore();
   }
 
-  // ── LEFT TEXT — Beat 2 ──
-  s = slamInState(lt, { inAt: 3.20, dur: 0.36, offsetY: 32, fromScale: 0.94, blurPx: 3,
-                         outAt: 4.85, outDur: 0.20 });
-  if (s) {
-    const flickerAt = 3.62;
-    const dt = lt - flickerAt;
-    const inFlicker = dt > 0 && dt < 0.04;
-    const opts = {
-      x: 120, y: 280,
-      font: `900 240px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -8.4,
-      opacity: s.opacity * (inFlicker ? 0.55 : 1),
-      scale: s.scale, blur: s.blur, translateY: s.ty,
-    };
-    drawGhostTrail(ctx, lt, '86.', opts,
-      { at: 3.55, dur: 0.45, offsetY: 18, extraScale: 0.08, blur: 26, alpha: 0.48 });
-    drawTextBlock(ctx, '86.', opts);
-  }
-  s = slamInState(lt, { inAt: 3.55, dur: 0.34, offsetY: 20, outAt: 4.85, outDur: 0.20 });
-  if (s) {
-    drawTextBlock(ctx, 'Clinical Recovery Index.', {
-      x: 120, y: 520,
-      font: `700 56px ${FONT_SERIF}`,
-      color: 'rgba(255,255,255,0.92)', letterSpacing: -0.84,
-      opacity: s.opacity, translateY: s.ty,
+  // ── Futuristic data lines emanating from dashboard (after frame appears) ──
+  const linesStart = frameAppear + 0.2;
+  if (lt >= linesStart && exitFade > 0.01) {
+    const linesLt = lt - linesStart;
+
+    // Define data callout lines with labels
+    const dataLines = [
+      {
+        fromX: vp.x + vp.w * 0.18, fromY: vp.y + vp.h * 0.25, // CRI ring area
+        toX: vp.x - 180, toY: vp.y + vp.h * 0.15,
+        label: 'CLINICAL RECOVERY INDEX', value: '86/100', delay: 0
+      },
+      {
+        fromX: vp.x + vp.w * 0.35, fromY: vp.y + vp.h * 0.65, // Lower metrics
+        toX: vp.x - 200, toY: vp.y + vp.h * 0.70,
+        label: 'MOTOR FUNCTION', value: '88%', delay: 0.15
+      },
+      {
+        fromX: vp.x + vp.w * 0.85, fromY: vp.y + vp.h * 0.35, // Right side
+        toX: vp.x + vp.w + 180, toY: vp.y + vp.h * 0.25,
+        label: 'FACIAL SYMMETRY', value: '82%', delay: 0.10
+      },
+      {
+        fromX: vp.x + vp.w * 0.75, fromY: vp.y + vp.h * 0.75, // Bottom right
+        toX: vp.x + vp.w + 200, toY: vp.y + vp.h * 0.80,
+        label: 'VOICE QUALITY', value: '90%', delay: 0.20
+      }
+    ];
+
+    dataLines.forEach(line => {
+      const lineT = linesLt - line.delay;
+      if (lineT < 0) return;
+
+      const lineFade = clamp(lineT / 0.25, 0, 1) * exitFade;
+      const lineExtend = clamp(lineT / 0.35, 0, 1);
+
+      if (lineFade > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = lineFade;
+
+        // Calculate current end point
+        const currentX = line.fromX + (line.toX - line.fromX) * lineExtend;
+        const currentY = line.fromY + (line.toY - line.fromY) * lineExtend;
+
+        // Draw line
+        ctx.strokeStyle = '#4A9EFF';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 8;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(line.fromX, line.fromY);
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Starting point dot
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#4A9EFF';
+        ctx.beginPath();
+        ctx.arc(line.fromX, line.fromY, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // End point glow (when line completes)
+        if (lineExtend >= 0.95) {
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = '#4A9EFF';
+          ctx.beginPath();
+          ctx.arc(line.toX, line.toY, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Label text
+          const labelFade = clamp((lineT - 0.35) / 0.2, 0, 1);
+          if (labelFade > 0.01) {
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = lineFade * labelFade;
+
+            // Label background
+            const isLeft = line.toX < vp.x;
+            ctx.textAlign = isLeft ? 'right' : 'left';
+            ctx.textBaseline = 'middle';
+
+            // Label text
+            ctx.font = `600 11px ${FONT_MONO}`;
+            if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+            ctx.fillStyle = 'rgba(74, 158, 255, 0.7)';
+            ctx.fillText(line.label, line.toX + (isLeft ? -12 : 12), line.toY - 12);
+
+            // Value text
+            ctx.font = `900 18px ${FONT_MONO}`;
+            ctx.fillStyle = '#4A9EFF';
+            ctx.shadowColor = '#4A9EFF';
+            ctx.shadowBlur = 10;
+            ctx.fillText(line.value, line.toX + (isLeft ? -12 : 12), line.toY + 8);
+          }
+        }
+
+        ctx.restore();
+      }
     });
   }
-  drawGlowLine(ctx, lt, {
-    x: 124, y: 610, length: 460, thickness: 1,
-    inAt: 3.85, drawDur: 0.32, color: 'rgba(74,158,255,0.45)', glow: 3,
-    outAt: 4.85, outDur: 0.20,
-  });
-  s = slamInState(lt, { inAt: 3.95, dur: 0.30, offsetY: 12, outAt: 4.85, outDur: 0.20 });
-  if (s) {
-    drawTextBlock(ctx, 'COMPOSITE · MOTOR + FACIAL + VOICE', {
-      x: 120, y: 638,
-      font: `500 20px ${FONT_MONO}`,
-      color: '#4A9EFF', letterSpacing: 4.4,
-      opacity: s.opacity, translateY: s.ty,
-    });
+
+  // ── Label top left (appears with frame) ──
+  if (lt >= frameAppear && exitFade > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = exitFade;
+    ctx.font = `500 11px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.2px';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('CLINICAL REPORT · SESSION COMPLETE', vp.x + 16, vp.y - 20);
+    ctx.restore();
   }
+
+  // ── Label bottom right (appears with frame) ──
+  if (lt >= frameAppear && exitFade > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = exitFade;
+    ctx.font = `500 10px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.8px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.85)';
+    ctx.fillText('REPORT GENERATED AUTOMATICALLY', vp.x + vp.w - 12, vp.y + vp.h + 12);
+    ctx.restore();
+  }
+
+  // ── OLD CRI CALLOUT DISABLED (replaced by futuristic data lines) ──
+  const calloutStart = 0.50;
+  if (false && lt >= calloutStart && exitFade > 0.01) {
+    const calloutLt = lt - calloutStart;
+
+    // Find approximate position of CRI ring in the dashboard image
+    // The CRI ring is in the upper-left quadrant of the dashboard
+    const criX = vp.x + vp.w * 0.25; // 25% from left
+    const criY = vp.y + vp.h * 0.25; // 25% from top
+
+    // Callout line endpoint (to the left of the dashboard)
+    const calloutEndX = vp.x - 200; // Left of dashboard
+    const calloutEndY = criY; // Same vertical position
+
+    // Draw callout line (animated over 300ms)
+    const lineDur = 0.30;
+    const lineProgress = clamp(calloutLt / lineDur, 0, 1);
+    if (lineProgress > 0) {
+      ctx.save();
+      ctx.globalAlpha = exitFade;
+      ctx.strokeStyle = '#4A9EFF';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#4A9EFF';
+      ctx.shadowBlur = 8;
+
+      const currentX = criX + (calloutEndX - criX) * lineProgress;
+      const currentY = criY + (calloutEndY - criY) * lineProgress;
+
+      ctx.beginPath();
+      ctx.moveTo(criX, criY);
+      ctx.lineTo(currentX, currentY);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // CRI number and label (appear after line completes) with enhanced styling
+    if (calloutLt >= lineDur) {
+      const textFade = clamp((calloutLt - lineDur) / 0.25, 0, 1) * exitFade;
+
+      if (textFade > 0.01) {
+        // "86" in large white serif with strong glow
+        ctx.save();
+        ctx.globalAlpha = textFade;
+        ctx.font = `900 140px ${FONT_SERIF}`;
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '-4.2px';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 40;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('86', calloutEndX - 60, calloutEndY - 20);
+        ctx.restore();
+
+        // "CLINICAL RECOVERY INDEX" below with glow
+        ctx.save();
+        ctx.globalAlpha = textFade;
+        ctx.font = `700 16px ${FONT_MONO}`;
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '3.2px';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#4A9EFF';
+        ctx.fillText('CLINICAL RECOVERY INDEX', calloutEndX - 60, calloutEndY + 50);
+        ctx.restore();
+      }
+    }
+
+    // Domain scores bars (start at 0.8s after callout starts, staggered 0.1s each)
+    const barsStart = 0.80;
+    if (calloutLt >= barsStart) {
+      const bars = [
+        { label: 'PINCH', value: 88, delay: 0.00 },
+        { label: 'HAND OPENING', value: 84, delay: 0.10 },
+        { label: 'SMILE', value: 82, delay: 0.20 },
+        { label: 'VOICE', value: 90, delay: 0.30 },
+      ];
+
+      const barStartY = calloutEndY + 90;
+      const barSpacing = 46;
+      const barMaxW = 320;
+
+      bars.forEach((bar, i) => {
+        const barLt = calloutLt - barsStart - bar.delay;
+        if (barLt < 0) return;
+
+        const barY = barStartY + i * barSpacing;
+        const barFade = clamp(barLt / 0.15, 0, 1) * exitFade;
+        const barFill = clamp((barLt - 0.10) / 0.40, 0, 1);
+
+        if (barFade > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = barFade;
+
+          // Label with subtle glow
+          ctx.font = `600 12px ${FONT_MONO}`;
+          if ('letterSpacing' in ctx) ctx.letterSpacing = '2.4px';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'left';
+          ctx.shadowColor = '#00D9FF';
+          ctx.shadowBlur = 6;
+          ctx.fillStyle = 'rgba(0, 217, 255, 0.8)';
+          ctx.fillText(bar.label, calloutEndX - 60, barY - 10);
+
+          // Value with stronger glow
+          ctx.font = `900 18px ${FONT_MONO}`;
+          ctx.shadowColor = '#4A9EFF';
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = '#4A9EFF';
+          ctx.fillText(String(bar.value), calloutEndX - 60, barY + 8);
+
+          // Bar track
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillRect(calloutEndX + 20, barY + 4, barMaxW, 4);
+
+          // Bar fill with glow
+          const fillW = barMaxW * (bar.value / 100) * barFill;
+          ctx.shadowColor = '#4A9EFF';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = '#4A9EFF';
+          ctx.fillRect(calloutEndX + 20, barY + 4, fillW, 4);
+
+          // Bright leading edge
+          if (fillW > 2) {
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(calloutEndX + 20 + fillW - 2, barY + 3, 2, 6);
+          }
+
+          ctx.restore();
+        }
+      });
+    }
+  }
+
+  // No left text in this beat — dashboard is fullscreen and centered
 }
 
 function renderBlock4Beat3(ctx, t) {
@@ -415,108 +620,127 @@ function renderBlock4Beat4(ctx, t) {
   if (t < 37.0 || t > 39.05) return;
   const lt = t - 37.0;
 
-  // RIGHT: detail panel with crosshair + waveform + ring indicator
+  // Panel derecho ELIMINADO - solo texto izquierdo
   const panelX = 980, panelY = 180, panelW = 880, panelH = 760;
 
-  ctx.save();
-  // Panel bg
-  const g = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
-  g.addColorStop(0, 'rgba(38, 24, 12, 0.92)');
-  g.addColorStop(1, 'rgba(18, 10, 6, 0.95)');
-  ctx.fillStyle = g;
-  ctx.fillRect(panelX, panelY, panelW, panelH);
-  // Grid
-  drawGridSection(ctx, {
-    x: panelX, y: panelY, w: panelW, h: panelH,
-    cellSize: 56, color: 'rgba(74,158,255,0.06)', alpha: 1,
-  });
+  // ── LEFT STACK CON MUCHA SAZÓN ──
 
-  // Face mesh top
-  drawFaceMesh(ctx, lt, {
-    cx: panelX + panelW * 0.30, cy: panelY + 280, w: 200, h: 280,
-    inAt: 0.08, alpha: 0.85, density: 0.6, jitterAmp: 0.5,
-  });
-  drawCrosshair(ctx, {
-    cx: panelX + panelW * 0.30, cy: panelY + 230,
-    ringR: 60, armLen: 22,
-    color: '#4A9EFF', alpha: 0.7,
-    label: 'AU · 17 + 12', pulseT: (lt * 0.7) % 1,
-  });
+  // Eyebrow con glow reducido
+  let s = slamInState(lt, { inAt: 0.05, dur: 0.28, offsetY: 10 });
+  if (s) {
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 220 + s.ty);
+    ctx.font = `600 13px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.8px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.85)';
+    ctx.fillText('○ MULTIMODAL CAPTURE · REAL-TIME ANALYSIS', 0, 0);
+    ctx.restore();
+  }
 
-  // Hand keypoints top-right
-  drawHandKeypoints(ctx, lt, {
-    cx: panelX + panelW * 0.75, cy: panelY + 260, size: 220,
-    inAt: 0.12, alpha: 0.95, color: '#4A9EFF',
-    pointSize: 4, showBones: true, revealStaggerDur: 0.4, jitterAmp: 1.0,
-  });
-
-  // Waveform — vocal biomarker, bottom of panel
-  drawWaveform(ctx, lt, {
-    x: panelX + 40, y: panelY + 580, w: panelW - 80, h: 100,
-    alpha: 0.85, color: '#4A9EFF',
-    amplitude: 0.7, speed: 1.5, bars: 0, thickness: 2.5,
-  });
-
-  // Edge vignette
-  const vgrad = ctx.createRadialGradient(
-    panelX + panelW / 2, panelY + panelH / 2, Math.min(panelW, panelH) * 0.4,
-    panelX + panelW / 2, panelY + panelH / 2, Math.max(panelW, panelH) * 0.65
-  );
-  vgrad.addColorStop(0, 'rgba(0,0,0,0)');
-  vgrad.addColorStop(1, 'rgba(0,0,0,0.55)');
-  ctx.fillStyle = vgrad;
-  ctx.fillRect(panelX, panelY, panelW, panelH);
-  ctx.restore();
-
-  drawClinicalFrame(ctx, lt, {
-    vpX: panelX, vpY: panelY, vpW: panelW, vpH: panelH,
-    inAt: 0.02, totalDur: 0.04, trace: false,
-  });
-  drawCornerBrackets(ctx, lt, {
-    vpX: panelX, vpY: panelY, vpW: panelW, vpH: panelH, inAt: 0.08, dur: 0.28,
-  });
-
-  // LEFT stack
-  let s = slamInState(lt, { inAt: 0.15, dur: 0.34, offsetY: 28, fromScale: 0.95, blurPx: 3 });
+  // "14 biomarkers" con brillo reducido
+  s = slamInState(lt, { inAt: 0.15, dur: 0.34, offsetY: 28, fromScale: 0.95, blurPx: 3 });
   const c14 = countUpValue(lt, { inAt: 0.20, dur: 0.30, from: 0, to: 14, decimals: 0, punchScale: 1.04 });
   if (s && c14) {
-    drawTextBlock(ctx, `${c14.display} biomarkers.`, {
-      x: 120, y: 290,
-      font: `900 96px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -2.4,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c14.scale,
-    });
-  }
-  s = slamInState(lt, { inAt: 0.55, dur: 0.32, offsetY: 22 });
-  if (s) {
-    drawTextBlock(ctx, 'Every session.', {
-      x: 120, y: 430,
-      font: `800 78px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -1.56,
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-  s = slamInState(lt, { inAt: 0.95, dur: 0.32, offsetY: 22 });
-  if (s) {
-    drawTextBlock(ctx, 'Every day.', {
-      x: 120, y: 550,
-      font: `800 78px ${FONT_SERIF}`,
-      color: '#4A9EFF', letterSpacing: -1.56,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 290 + s.ty);
+    ctx.scale(s.scale * c14.scale, s.scale * c14.scale);
+    if (s.blur > 0) ctx.filter = `blur(${s.blur}px)`;
+
+    ctx.font = `900 100px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-3px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    // Número sin gradient, solo azul sólido
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText(c14.display, 0, 0);
+
+    // "biomarkers." en blanco con glow reducido
+    const num14Width = ctx.measureText(c14.display).width;
+    ctx.shadowColor = 'rgba(255,255,255,0.3)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(' biomarkers.', num14Width, 0);
+
+    ctx.restore();
   }
 
-  // Tertiary mono trailer
+  // Divider horizontal con glow reducido
+  drawGlowLine(ctx, lt, {
+    x: 124, y: 425, length: 700, thickness: 1,
+    inAt: 0.45, drawDur: 0.30, color: 'rgba(74, 158, 255, 0.4)', glow: 6,
+  });
+
+  // "Every session." sin gradient, más simple
+  s = slamInState(lt, { inAt: 0.55, dur: 0.32, offsetY: 22 });
+  if (s) {
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 460 + s.ty);
+    ctx.font = `800 78px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.95px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    ctx.shadowColor = 'rgba(255,255,255,0.3)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Every session.', 0, 0);
+    ctx.restore();
+  }
+
+  // "Every day." en azul simple
+  s = slamInState(lt, { inAt: 0.95, dur: 0.32, offsetY: 22 });
+  if (s) {
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 565 + s.ty);
+    ctx.font = `800 78px ${FONT_SERIF}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.95px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#4A9EFF';
+    ctx.fillText('Every day.', 0, 0);
+    ctx.restore();
+  }
+
+  // Divider bottom con glow reducido
+  drawGlowLine(ctx, lt, {
+    x: 124, y: 670, length: 650, thickness: 1,
+    inAt: 1.20, drawDur: 0.28, color: 'rgba(74, 158, 255, 0.4)', glow: 6,
+  });
+
+  // Metadata técnica con brillo muy reducido
   s = slamInState(lt, { inAt: 1.30, dur: 0.30, offsetY: 8 });
   if (s) {
-    drawTextBlock(ctx, '[ TRAJECTORY · CONTINUOUS · CLINICIAN-FACING ]', {
-      x: 120, y: 700,
-      font: `500 13px ${FONT_MONO}`,
-      color: 'rgba(255,255,255,0.42)', letterSpacing: 2.2,
-      opacity: s.opacity, translateY: s.ty,
-    });
+    ctx.save();
+    ctx.globalAlpha = s.opacity;
+    ctx.translate(120, 698 + s.ty);
+    ctx.font = `500 13px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.6px';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#4A9EFF';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.65)';
+    ctx.fillText('[ TRAJECTORY · CONTINUOUS · CLINICIAN-FACING ]', 0, 0);
+    ctx.restore();
   }
+
+  // ── ELEMENTOS VISUALES ELIMINADOS PARA SIMPLICIDAD ──
+  // Anillo pulsante ELIMINADO
+  // Partículas flotantes ELIMINADAS
 }
 
 function renderBlock4Canvas(ctx, t) {
@@ -526,6 +750,10 @@ function renderBlock4Canvas(ctx, t) {
   renderBlock4Dashboard(ctx, t);
   renderBlock4Beat3(ctx, t);
   renderBlock4Beat4(ctx, t);
+
+  // iOS Notification - appears 0.5s after block starts (at 27.5s)
+  // This is the "aha moment" - the clinician receives the report automatically
+  drawIOSNotification(ctx, t, { inAt: 27.5, stayDur: 2.5, exitDur: 0.2 });
 
   // Closing transition: letterbox (4→5)
   drawLetterbox(ctx, t - 38.70, 0.30);
