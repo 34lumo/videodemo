@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Between Visits — Canvas (60s motion graphics)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600;1,700;1,900&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #000; color: #fff; height: 100%; font-family: "Inter", system-ui, sans-serif; }
+  body { overflow: hidden; }
+  #root { position: fixed; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="canvas-engine.jsx"></script>
+<script type="text/babel" src="canvas-block1.jsx"></script>
+<script type="text/babel" src="canvas-block2.jsx"></script>
+<script type="text/babel" src="canvas-block3.jsx"></script>
+<script type="text/babel" src="canvas-block4.jsx"></script>
+<script type="text/babel" src="canvas-block5.jsx"></script>
+<script type="text/babel" src="canvas-block6.jsx"></script>
+<script type="text/babel" src="canvas-block7.jsx"></script>
+
+<script type="text/babel">
+  // Pure motion graphics — no images. Atmospheres shift mood per block.
+  //
+  // Transitions:
+  //   B1→B2: scan flash (built-in)
+  //   B2→B3: vertical wipe (built-in, end of B2)
+  //   B3→B4: geometry collapse (end of B3)
+  //   B4→B5: letterbox close+open (end of B4)
+  //   B5→B6: color flash (end of B5)
+  //   B6→B7: radial wipe (end of B6)
+  function masterRender(ctx, t, W, H) {
+    beginFrame(ctx);
+
+    // ── ATMOSPHERE per block ──
+    if (t < 11.0) {
+      drawAtmosphereNavy(ctx, t, 1.0);
+    } else if (t < 18.0) {
+      // B2 — navy blending into teal
+      const blend = clamp((t - 11.0) / 1.5, 0, 1);
+      drawAtmosphereNavy(ctx, t, 1.0 - blend * 0.5);
+      drawAtmosphereTeal(ctx, t, blend * 0.7);
+    } else if (t < 27.0) {
+      // B3 — deep teal
+      drawAtmosphereTeal(ctx, t, 1.0);
+    } else if (t < 39.0) {
+      // B4 — warm amber (crossfade from teal first 0.6s)
+      const fadeIn  = clamp((t - 27.0) / 0.8, 0, 1);
+      const fadeOut = clamp((t - 38.0) / 1.0, 0, 1);
+      drawAtmosphereTeal(ctx, t, 1.0 - fadeIn);
+      drawAtmosphereAmber(ctx, t, fadeIn * (1 - fadeOut));
+    } else if (t < 42.0) {
+      // B5 Beat 1 — desat grey + black on right
+      drawAtmosphereDesat(ctx, t, 1.0);
+    } else if (t < 46.0) {
+      // B5 Beat 2 — pure black (no atmosphere)
+    } else if (t < 53.0) {
+      // B6 — deep indigo
+      drawAtmosphereIndigo(ctx, t, 1.0);
+    } else {
+      // B7 — pure black, earned. No atmosphere added.
+    }
+
+    // ── DUST (subtle through all blocks except B5/B7) ──
+    if (t < 39.0) drawDust(ctx, t, 0.45, '#9bb6d6');
+    else if (t >= 46.0 && t < 53.0) drawDust(ctx, t, 0.42, '#9bb6d6');
+
+    // ── BLOCKS ──
+    renderBlock1Canvas(ctx, t);
+    renderBlock2Canvas(ctx, t);
+    renderBlock3Canvas(ctx, t);
+    renderBlock4Canvas(ctx, t);
+    renderBlock5Canvas(ctx, t);
+    renderBlock6Canvas(ctx, t);
+    renderBlock7Canvas(ctx, t);
+
+    // ── Global texture pass ──
+    if (t < 53.0) {
+      drawVignette(ctx, 0.40);
+      drawGrain(ctx, t, 0.030);
+    } else {
+      // Block 7 — lighter grain, no vignette (pure black should feel deep)
+      drawGrain(ctx, t, 0.022);
+    }
+  }
+
+  function App() {
+    return (
+      <Stage
+        width={1920}
+        height={1080}
+        duration={66}
+        background="#000"
+        loop={true}
+        autoplay={true}
+        persistKey="bv:canvas:full:v2"
+      >
+        <CanvasComposition width={1920} height={1080} render={masterRender} />
+      </Stage>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
