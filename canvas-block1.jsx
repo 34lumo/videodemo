@@ -1,373 +1,290 @@
-// canvas-block1.jsx — Block 1: The Problem. 0:00 → 0:11
+// canvas-block1.jsx — Block 1: Meet María. 0:00 → 0:11
 // Atmosphere: cold dark navy with a left-anchored cool radial.
-// No images. Three text layers + geometric punctuation per beat.
+// Simple, human, emotional opening.
 
 function renderBlock1Beat1(ctx, t) {
-  // Stage 0.00 → 3.62
-  if (t > 3.62) return;
+  // Beat 1: "Meet María." (0:00 → 0:05) — CLEAN & ELEGANT
+  if (t > 5.0) return;
   const lt = t;
 
-  // Tertiary clinical chrome removido para evitar sobreposición
+  // "Meet María." — upward drift with subtle gradient
+  if (lt >= 0.0) {
+    const entryDur = 0.80; // 800ms
+    const entryT = clamp(lt / entryDur, 0, 1);
+    const entryEase = Easing.easeOutCubic(entryT);
 
-  // ── PRIMARY — "40" hero with CINEMATIC EFFECTS ──
-  let s = slamInState(lt, { inAt: 0.22, dur: 0.34, offsetY: 28, fromScale: 0.94, blurPx: 4 });
-  const c40 = countUpValue(lt, { inAt: 0.25, dur: 0.40, from: 13, to: 40, decimals: 0, punchScale: 1.05 });
-  if (s && c40) {
-    const opts40 = {
-      x: 144, y: 320,
-      font: `900 320px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -8,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c40.scale,
-    };
+    // Upward drift: starts 20px below, rises to final position
+    const driftY = 20 * (1 - entryEase);
 
-    // Pulse wave when number appears
-    drawPulseWave(ctx, lt, { cx: 400, cy: 450, inAt: 0.65, speed: 0.5, maxRadius: 400 });
+    // Opacity: 0 to 1 over 800ms
+    const opacity = entryEase;
 
-    // Lens flare on impact
-    drawLensFlare(ctx, lt, { x: 144, y: 320, inAt: 0.65, dur: 1.0, intensity: 0.8 });
+    // Breathing scale after fully visible (3 second cycle, 100% to 101%)
+    let breathScale = 1.0;
+    if (lt > entryDur) {
+      const breathT = (lt - entryDur) / 3.0; // 3 second cycle
+      breathScale = 1.0 + 0.01 * Math.sin(breathT * Math.PI * 2);
+    }
 
-    // Enhanced ghost trail
-    drawGhostTrail(ctx, lt, c40.display, opts40,
-      { at: 0.58, dur: 0.45, offsetY: 14, extraScale: 0.08, blur: 24, alpha: 0.50 });
+    const textY = 540 + driftY;
 
-    drawTextBlock(ctx, c40.display, opts40);
-  }
-
-  // Light leak transition
-  drawLightLeak(ctx, lt, { inAt: 0.15, dur: 1.5, side: 'left' });
-
-  // ── SECONDARY — "EVERY" eyebrow above "40" with glow ──
-  s = slamInState(lt, { inAt: 0.15, dur: 0.28, offsetY: 14 });
-  if (s) {
+    // ── MAIN TEXT with gradient on "María" only ──
     ctx.save();
-    ctx.globalAlpha = s.opacity;
-    ctx.translate(144, 280 + s.ty);
-    ctx.font = `600 26px ${FONT_MONO}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '7.8px';
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.shadowColor = '#4A9EFF';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#4A9EFF';
-    ctx.fillText('EVERY', 0, 0);
-    ctx.restore();
-  }
+    ctx.globalAlpha = opacity;
+    ctx.translate(960, textY);
+    ctx.scale(breathScale, breathScale);
+    ctx.font = `900 96px ${FONT_SERIF}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
 
-  // ── SECONDARY — "SECONDS," unit beside "40" with gradient ──
-  s = slamInState(lt, { inAt: 0.66, dur: 0.28, offsetY: 18, fromScale: 0.96 });
-  if (s) {
-    ctx.save();
-    ctx.font = `900 320px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-8px';
-    const w40 = ctx.measureText('40').width;
-    ctx.restore();
+    // Measure text widths to position each part
+    const fullText = 'Meet María.';
+    const fullWidth = ctx.measureText(fullText).width;
+    const meetWidth = ctx.measureText('Meet ').width;
+    const mariaWidth = ctx.measureText('María').width;
 
-    ctx.save();
-    ctx.globalAlpha = s.opacity;
-    ctx.translate(144 + w40 + 36, 580 + s.ty);
-    ctx.scale(s.scale, s.scale);
-    ctx.font = `700 56px ${FONT_MONO}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '2.8px';
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
+    // Starting X position (left-aligned from center)
+    const startX = -fullWidth / 2;
 
-    const grad = ctx.createLinearGradient(0, 0, 400, 0);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(1, '#4A9EFF');
-
-    ctx.shadowColor = 'rgba(255,255,255,0.5)';
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = grad;
-    ctx.fillText('SECONDS,', 0, 0);
-    ctx.restore();
-  }
-
-  // ── SECONDARY prose — "someone has a stroke." with glow ──
-  s = slamInState(lt, { inAt: 0.94, dur: 0.34, offsetY: 22 });
-  if (s) {
-    ctx.save();
-    ctx.globalAlpha = s.opacity;
-    ctx.translate(580, 700 + s.ty);
-    ctx.font = `800 70px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.4px';
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.shadowColor = 'rgba(255,255,255,0.6)';
-    ctx.shadowBlur = 20;
+    // Draw "Meet " in white
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('someone has a stroke.', 0, 0);
+    ctx.textAlign = 'left';
+    ctx.fillText('Meet ', startX, 0);
+
+    // Draw "María" with blue gradient
+    const grad = ctx.createLinearGradient(0, -48, 0, 48);
+    grad.addColorStop(0, '#4A9EFF');
+    grad.addColorStop(1, '#00D9FF');
+    ctx.fillStyle = grad;
+    ctx.fillText('María', startX + meetWidth, 0);
+
+    // Draw "." in white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('.', startX + meetWidth + mariaWidth, 0);
+
     ctx.restore();
   }
-
-  // ── GEOMETRY — interval tick bar at bottom-left ──
-  // A horizontal axis with 4 ticks at 10, 20, 30, 40 sec — a "40" highlighted.
-  if (lt > 1.30) {
-    const axisX = 144, axisY = 956, axisW = 460;
-    const drawT = clamp((lt - 1.30) / 0.45, 0, 1);
-    const eAxis = Easing.easeOutCubic(drawT);
-    ctx.save();
-    ctx.globalAlpha = eAxis;
-    ctx.strokeStyle = 'rgba(255,255,255,0.30)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(axisX, axisY); ctx.lineTo(axisX + axisW * eAxis, axisY);
-    ctx.stroke();
-    // Tick labels — 10s 20s 30s 40s
-    const ticks = [10, 20, 30, 40];
-    ticks.forEach((tk, i) => {
-      const tx = axisX + (i / 3) * axisW;
-      const tickRev = clamp((lt - 1.30 - i * 0.10) / 0.20, 0, 1);
-      if (tickRev <= 0.01) return;
-      ctx.globalAlpha = tickRev * eAxis;
-      const isLast = i === 3;
-      ctx.strokeStyle = isLast ? '#4A9EFF' : 'rgba(255,255,255,0.38)';
-      ctx.shadowColor = isLast ? '#4A9EFF' : 'transparent';
-      ctx.shadowBlur = isLast ? 10 : 0;
-      ctx.lineWidth = isLast ? 2 : 1;
-      ctx.beginPath();
-      ctx.moveTo(tx, axisY - (isLast ? 14 : 8)); ctx.lineTo(tx, axisY + 4);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = isLast ? '#4A9EFF' : 'rgba(255,255,255,0.55)';
-      ctx.font = `500 11px ${FONT_MONO}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '1.4px';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(`${tk}S`, tx, axisY + 10);
-    });
-    ctx.restore();
-  }
-
-  // ── 7.8M right side ──
-  drawGlowLine(ctx, lt, {
-    x: 1180, y: 836, length: 600, thickness: 1,
-    inAt: 1.50, drawDur: 0.32, color: '#4A9EFF', glow: 4,
-    origin: 'right',
-  });
-
-  // PRIMARY — "7.8" + "M"
-  s = slamInState(lt, { inAt: 1.62, dur: 0.32, offsetY: 22, fromScale: 0.94 });
-  const c78 = countUpValue(lt, { inAt: 1.65, dur: 0.40, from: 3.2, to: 7.8, decimals: 1 });
-  if (s && c78) {
-    ctx.save();
-    ctx.font = `900 108px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-2.16px';
-    const wM = ctx.measureText('M').width;
-    ctx.restore();
-    const xM = 1920 - 140;
-    const x78r = xM - wM - 6;
-    const opts78 = {
-      x: x78r, y: 856,
-      font: `900 156px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -3.9,
-      align: 'right',
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c78.scale,
-    };
-    drawGhostTrail(ctx, lt, c78.display, opts78,
-      { at: 1.95, dur: 0.40, offsetY: 10, extraScale: 0.08, blur: 20, alpha: 0.42 });
-    drawTextBlock(ctx, c78.display, opts78);
-  }
-  s = slamInState(lt, { inAt: 1.98, dur: 0.26, offsetY: 12 });
-  if (s) {
-    drawTextBlock(ctx, 'M', {
-      x: 1920 - 140, y: 856,
-      font: `900 108px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -2.16,
-      align: 'right',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-
-  // SECONDARY italic caption — right-aligned
-  s = slamInState(lt, { inAt: 2.18, dur: 0.30, offsetY: 16 });
-  if (s) {
-    drawTextBlock(ctx, 'survivors in the US alone.', {
-      x: 1920 - 140, y: 1018,
-      font: `italic 500 30px ${FONT_SERIF}`,
-      color: 'rgba(255,255,255,0.62)',
-      align: 'right',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-
-  // Referencia removida para evitar sobreposición
 }
 
 function renderBlock1Beat2(ctx, t) {
-  if (t < 4.00 || t > 9.95) return;
-  const lt = t - 4.00;
+  // Beat 2: Two lines staggered (0:05 → 0:11) — BUILD THE CASE
+  if (t < 5.0 || t > 11.0) return;
+  const lt = t - 5.0;
 
-  // ── PRIMARY — "673" hero ──
-  let s = slamInState(lt, { inAt: 0.02, dur: 0.34, offsetY: 32, fromScale: 0.92, blurPx: 5,
-                              outAt: 5.30, outDur: 0.55 });
-  const c673 = countUpValue(lt, { inAt: 0.05, dur: 0.50, from: 0, to: 673, decimals: 0, punchScale: 1.08 });
-  if (s && c673) {
-    const opts = {
-      x: 144, y: 300,
-      font: `900 320px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -8,
-      opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
-      punchScale: c673.scale,
-    };
-    // Stronger ghost trail on landing
-    drawGhostTrail(ctx, lt, c673.display, opts,
-      { at: 0.52, dur: 0.60, offsetY: 18, extraScale: 0.12, blur: 32, alpha: 0.62 });
-    drawTextBlock(ctx, c673.display, opts);
-  }
+  // "Meet María." fade out (0:05 → 0:055)
+  if (lt < 0.5) {
+    const fadeOutProgress = lt / 0.5;
+    const opacity = 1.0 - fadeOutProgress;
 
-  // ── SECONDARY prose ──
-  s = slamInState(lt, { inAt: 0.62, dur: 0.34, offsetY: 22, outAt: 5.30, outDur: 0.55 });
-  if (s) {
-    drawTextBlock(ctx, 'patients per clinician.', {
-      x: 800, y: 620,
-      font: `700 64px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -0.32,
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
+    // Continue breathing scale during fade
+    const breathT = (t - 0.80) / 3.0;
+    const breathScale = 1.0 + 0.01 * Math.sin(breathT * Math.PI * 2);
 
-  // Hairline divider
-  drawGlowLine(ctx, lt, {
-    x: 144, y: 700, length: 1632, thickness: 1,
-    inAt: 1.38, drawDur: 0.34, color: 'rgba(74,158,255,0.55)', glow: 4,
-    outAt: 5.30, outDur: 0.55,
-  });
-
-  // ── SECONDARY stats ── "2 visits a week." + "5 days blind."
-  s = slamInState(lt, { inAt: 1.52, dur: 0.32, offsetY: 22, outAt: 3.10, outDur: 0.30 });
-  if (s) {
-    drawTextBlock(ctx, '2', {
-      x: 144, y: 740,
-      font: `900 148px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -2.96,
-      opacity: s.opacity, translateY: s.ty,
-    });
     ctx.save();
-    ctx.font = `900 148px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-2.96px';
-    const w2 = ctx.measureText('2').width;
+    ctx.globalAlpha = opacity;
+    ctx.translate(960, 540);
+    ctx.scale(breathScale, breathScale);
+    ctx.font = `900 96px ${FONT_SERIF}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Meet María.', 0, 0);
     ctx.restore();
-    drawTextBlock(ctx, 'visits a week.', {
-      x: 144 + w2 + 28, y: 800,
-      font: `500 46px ${FONT_SERIF}`,
-      color: '#ffffff',
-      opacity: s.opacity, translateY: s.ty,
-    });
-  }
-  s = slamInState(lt, { inAt: 1.72, dur: 0.32, offsetY: 22, outAt: 3.10, outDur: 0.30 });
-  if (s) {
-    drawTextBlock(ctx, '5', {
-      x: 1020, y: 740,
-      font: `900 148px ${FONT_SERIF}`,
-      color: '#ffffff', letterSpacing: -2.96,
-      opacity: s.opacity, translateY: s.ty,
-    });
-    ctx.save();
-    ctx.font = `900 148px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-2.96px';
-    const w5 = ctx.measureText('5').width;
-    ctx.restore();
-    drawTextBlock(ctx, 'days blind.', {
-      x: 1020 + w5 + 28, y: 800,
-      font: `500 46px ${FONT_SERIF}`,
-      color: '#ffffff',
-      opacity: s.opacity, translateY: s.ty,
-    });
   }
 
-  // ── GEOMETRY — week timeline showing 2 ticks (visits) and 5 dark cells (blind) ──
-  // Only visible during stats, then transitions out before accent line.
-  if (lt > 2.50 && lt < 3.40) {
-    const visT = clamp((lt - 2.50) / 0.40, 0, 1) * (1 - clamp((lt - 3.10) / 0.30, 0, 1));
-    ctx.save();
-    ctx.globalAlpha = visT;
-    // Week grid: 7 cells across, only 2 marked (visits) — at index 1, 4
-    const gx = 144, gy = 928, gW = 1100, cellW = gW / 7, gH = 22;
-    for (let i = 0; i < 7; i++) {
-      const cx = gx + i * cellW;
-      // Track
-      ctx.fillStyle = 'rgba(255,255,255,0.06)';
-      ctx.fillRect(cx + 3, gy, cellW - 6, gH);
-      const isVisit = (i === 1 || i === 4);
-      if (isVisit) {
-        ctx.shadowColor = '#4A9EFF';
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = '#4A9EFF';
-        ctx.fillRect(cx + 3, gy, cellW - 6, gH);
-        ctx.shadowBlur = 0;
-      } else {
-        // hatch lines for "blind" days
-        ctx.strokeStyle = 'rgba(255,107,107,0.30)';
-        ctx.lineWidth = 1;
-        for (let h = -gH; h < cellW + gH; h += 8) {
-          ctx.beginPath();
-          ctx.moveTo(cx + 3 + h, gy);
-          ctx.lineTo(cx + 3 + h - gH, gy + gH);
-          ctx.stroke();
-        }
-      }
-      ctx.shadowBlur = 0;
-      // Day label
-      const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-      ctx.font = `500 10px ${FONT_MONO}`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
+  // "Stroke survivor." — upward drift with glitch effect
+  if (lt >= 0.60) {
+    const entryStart = 0.60;
+    const entryDur = 0.50; // 500ms
+    const entryT = clamp((lt - entryStart) / entryDur, 0, 1);
+    const entryEase = Easing.easeOutCubic(entryT);
+
+    // Upward drift
+    const driftY = 20 * (1 - entryEase);
+
+    // Opacity (80% max)
+    const opacity = 0.8 * entryEase;
+    const textY = 480 + driftY;
+
+    // ── GLITCH on entry ──
+    if (entryT < 0.3) {
+      const glitchAmount = (1 - entryT / 0.3) * 8;
+
+      // RGB split glitch
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.5;
+      ctx.translate(960 - glitchAmount, textY);
+      ctx.font = `900 72px ${FONT_SERIF}`;
+      ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.fillText(dayLabels[i], cx + cellW / 2, gy + gH + 6);
+      ctx.fillStyle = '#ff0040';
+      ctx.fillText('Stroke survivor.', 0, 0);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.5;
+      ctx.translate(960 + glitchAmount, textY + Math.sin(lt * 50) * 2);
+      ctx.font = `900 72px ${FONT_SERIF}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00ffff';
+      ctx.fillText('Stroke survivor.', 0, 0);
+      ctx.restore();
     }
-    // Caption
-    ctx.font = `500 11px ${FONT_MONO}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '2px';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.textAlign = 'right';
-    ctx.fillText('OBSERVED ÷ UNOBSERVED', 1920 - 144, gy + 4);
-    ctx.restore();
-  }
 
-  // ── PRIMARY accent — "Recovery happens every day." + "Clinical insight doesn't." with gradient ──
-  s = slamInState(lt, { inAt: 3.28, dur: 0.34, offsetY: 20, outAt: 5.30, outDur: 0.55 });
-  if (s) {
+    // ── MAIN TEXT with subtle gradient ──
     ctx.save();
-    ctx.globalAlpha = s.opacity;
-    ctx.translate(960, 868 + s.ty);
-    ctx.font = `italic 700 68px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.36px';
-    ctx.textBaseline = 'top';
+    ctx.globalAlpha = opacity;
+    ctx.translate(960, textY);
+    ctx.font = `900 72px ${FONT_SERIF}`;
+    ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
 
-    const grad = ctx.createLinearGradient(-400, 0, 400, 0);
-    grad.addColorStop(0, '#4A9EFF');
-    grad.addColorStop(0.5, '#00D9FF');
-    grad.addColorStop(1, '#4A9EFF');
+    // Gradient fill
+    const grad = ctx.createLinearGradient(-200, -36, 200, 36);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
 
-    ctx.shadowColor = '#4A9EFF';
-    ctx.shadowBlur = 28;
+    ctx.shadowColor = 'rgba(74, 158, 255, 0.4)';
+    ctx.shadowBlur = 20;
     ctx.fillStyle = grad;
-    ctx.fillText('Recovery happens every day.', 0, 0);
+    ctx.fillText('Stroke survivor.', 0, 0);
+
     ctx.restore();
+
+    // ── SCAN LINES passing over text ──
+    if (lt > 1.0) {
+      const scanT = ((lt - 1.0) * 0.5) % 1.0;
+      const scanY = textY - 50 + scanT * 100;
+      const scanAlpha = Math.sin(scanT * Math.PI) * 0.3;
+
+      ctx.save();
+      ctx.globalAlpha = opacity * scanAlpha;
+      ctx.fillStyle = '#4A9EFF';
+      ctx.fillRect(760, scanY, 400, 1);
+      ctx.fillRect(760, scanY + 3, 400, 1);
+      ctx.restore();
+    }
   }
-  s = slamInState(lt, { inAt: 3.62, dur: 0.34, offsetY: 20, outAt: 5.30, outDur: 0.55 });
-  if (s) {
+
+  // "Next appointment: 6 weeks away." — typing effect with hacker terminal vibes
+  if (lt >= 1.90) {
+    const typeStart = 1.90;
+    const typeT = lt - typeStart;
+    const fullText = 'Next appointment: 6 weeks away.';
+    const charDelay = 0.035; // 35ms per character
+    const charsToShow = Math.min(Math.floor(typeT / charDelay), fullText.length);
+    const visibleText = fullText.substring(0, charsToShow);
+    const typingComplete = charsToShow >= fullText.length;
+
+    // Cursor blinks 3 times after typing completes
+    let showCursor = !typingComplete;
+    if (typingComplete) {
+      const cursorT = typeT - (fullText.length * charDelay);
+      const blinkCycle = 0.50;
+      const blinkCount = Math.floor(cursorT / blinkCycle);
+      if (blinkCount < 3) {
+        showCursor = (cursorT % blinkCycle) < (blinkCycle / 2);
+      }
+    }
+
+    const textY = 600;
+
+    // ── BACKGROUND TERMINAL CARD ──
+    const cardFade = clamp(typeT / 0.3, 0, 1);
     ctx.save();
-    ctx.globalAlpha = s.opacity;
-    ctx.translate(960, 956 + s.ty);
-    ctx.font = `italic 700 68px ${FONT_SERIF}`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '-1.36px';
-    ctx.textBaseline = 'top';
+    ctx.globalAlpha = cardFade * 0.15;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(560, textY - 30, 800, 60);
+    ctx.globalAlpha = cardFade * 0.3;
+    ctx.strokeStyle = '#4A9EFF';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(560, textY - 30, 800, 60);
+    ctx.restore();
+
+    // ── MATRIX-STYLE CHARACTERS RAIN behind text ──
+    if (typeT > 0.5) {
+      const rainFade = clamp((typeT - 0.5) / 0.4, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = rainFade * 0.15;
+      ctx.font = `500 12px ${FONT_MONO}`;
+      ctx.fillStyle = '#4A9EFF';
+      for (let i = 0; i < 20; i++) {
+        const x = 580 + i * 38;
+        const y = textY - 20 + ((typeT * 30 + i * 10) % 50);
+        ctx.fillText(String.fromCharCode(65 + (i * 7) % 26), x, y);
+      }
+      ctx.restore();
+    }
+
+    // ── TYPING TEXT with glow ──
+    ctx.save();
+    ctx.font = `600 28px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+    ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
 
-    const grad = ctx.createLinearGradient(-400, 0, 400, 0);
-    grad.addColorStop(0, '#4A9EFF');
-    grad.addColorStop(0.5, '#00D9FF');
-    grad.addColorStop(1, '#4A9EFF');
+    // Character glow effect - stronger on recently typed chars
+    for (let i = 0; i < visibleText.length; i++) {
+      const charAge = typeT - i * charDelay;
+      const glowIntensity = clamp(1 - charAge / 0.2, 0, 1);
 
-    ctx.shadowColor = '#4A9EFF';
-    ctx.shadowBlur = 28;
-    ctx.fillStyle = grad;
-    ctx.fillText("Clinical insight doesn't.", 0, 0);
+      const charX = 960 - ctx.measureText(visibleText).width / 2 + ctx.measureText(visibleText.substring(0, i)).width;
+
+      ctx.save();
+      ctx.shadowColor = '#4A9EFF';
+      ctx.shadowBlur = 20 + glowIntensity * 30;
+      ctx.fillStyle = '#4A9EFF';
+      ctx.fillText(visibleText[i], charX, textY);
+      ctx.restore();
+    }
+
+    // ── CURSOR with neon glow ──
+    if (showCursor) {
+      const textWidth = ctx.measureText(visibleText).width;
+      const cursorX = 960 + textWidth / 2 + 6;
+
+      ctx.save();
+      ctx.shadowColor = '#4A9EFF';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#4A9EFF';
+      ctx.fillRect(cursorX, textY - 14, 3, 28);
+
+      // Cursor glow halo
+      ctx.globalAlpha = 0.3;
+      ctx.shadowBlur = 40;
+      ctx.fillRect(cursorX - 1, textY - 16, 5, 32);
+      ctx.restore();
+    }
+
+    // ── DATA STREAM LINES ──
+    if (typingComplete) {
+      const streamT = typeT - fullText.length * charDelay;
+      if (streamT < 1.0) {
+        const streamAlpha = Math.sin(streamT * Math.PI) * 0.4;
+        ctx.save();
+        ctx.globalAlpha = streamAlpha;
+        ctx.strokeStyle = '#4A9EFF';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 8;
+
+        // Left stream
+        ctx.beginPath();
+        ctx.moveTo(560, textY);
+        ctx.lineTo(560 - streamT * 200, textY + streamT * 100);
+        ctx.stroke();
+
+        // Right stream
+        ctx.beginPath();
+        ctx.moveTo(1360, textY);
+        ctx.lineTo(1360 + streamT * 200, textY + streamT * 100);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     ctx.restore();
   }
 }
@@ -380,6 +297,16 @@ function renderBlock1Canvas(ctx, t) {
 
   // Background dust (low intensity)
   drawDust(ctx, t, 0.5, '#9bb6d6');
+
+  // Warm vignette at bottom — subtle hospital bed lamp effect for intimacy
+  ctx.save();
+  const warmGrad = ctx.createRadialGradient(960, 1400, 200, 960, 1400, 900);
+  warmGrad.addColorStop(0, 'rgba(255, 230, 200, 0.08)');
+  warmGrad.addColorStop(0.6, 'rgba(255, 230, 200, 0.02)');
+  warmGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = warmGrad;
+  ctx.fillRect(0, 0, 1920, 1080);
+  ctx.restore();
 
   // Section chrome
   // Section labels removidos

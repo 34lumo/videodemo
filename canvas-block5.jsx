@@ -16,7 +16,7 @@ function renderBlock5Beat1(ctx, t) {
     drawTextBlock(ctx, 'Last data point:', {
       x: 140, y: 360,
       font: `600 50px ${FONT_SERIF}`,
-      color: 'rgba(255,255,255,0.85)', letterSpacing: -0.25,
+      color: 'rgba(150,150,150,0.85)', letterSpacing: -0.25,
       opacity: s.opacity, scale: s.scale, blur: s.blur, translateY: s.ty,
     });
   }
@@ -42,6 +42,17 @@ function renderBlock5Beat1(ctx, t) {
       x: 144, y: 720,
       font: `500 18px ${FONT_MONO}`,
       color: 'rgba(255,255,255,0.42)', letterSpacing: 4.32,
+      opacity: s.opacity, translateY: s.ty,
+    });
+  }
+
+  // New italic line — "How are you feeling, María?"
+  s = slamInState(lt, { inAt: 2.40, dur: 0.32, offsetY: 14 });
+  if (s) {
+    drawTextBlock(ctx, 'How are you feeling, María?', {
+      x: 144, y: 760,
+      font: `italic 500 42px ${FONT_SERIF}`,
+      color: 'rgba(150,150,150,0.75)', letterSpacing: -0.21,
       opacity: s.opacity, translateY: s.ty,
     });
   }
@@ -192,6 +203,18 @@ function renderBlock5Beat2(ctx, t) {
       x: 1920 - 144, y: 720,
       font: `500 18px ${FONT_MONO}`,
       color: '#4A9EFF', letterSpacing: 4.32,
+      align: 'right',
+      opacity: s.opacity, translateY: s.ty,
+    });
+  }
+
+  // New italic line — "Day 18. Coordination drop detected. Doctor calls."
+  s = slamInState(lt, { inAt: 1.80, dur: 0.32, offsetY: 14, outAt: 3.95, outDur: 0.35 });
+  if (s) {
+    drawTextBlock(ctx, 'Day 18. Coordination drop detected. Doctor calls.', {
+      x: 1920 - 144, y: 760,
+      font: `italic 500 42px ${FONT_SERIF}`,
+      color: '#ffffff', letterSpacing: -0.21,
       align: 'right',
       opacity: s.opacity, translateY: s.ty,
     });

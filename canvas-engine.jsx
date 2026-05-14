@@ -1145,13 +1145,12 @@ function drawNotificationContent(ctx, x, y, w, h, opacity) {
   // Title - 26px bold white
   ctx.font = '700 26px Inter, -apple-system, system-ui, sans-serif';
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('New session report — Marco R.', textX, textStartY + 28);
+  ctx.fillText('María D. — Session complete.', textX, textStartY + 28);
 
   // Body text - 21px grey
   ctx.font = '400 21px Inter, -apple-system, system-ui, sans-serif';
   ctx.fillStyle = '#AEAEB2';
-  ctx.fillText('Marco has completed his daily stroke session.', textX, textStartY + 64);
-  ctx.fillText('All markers within range. Report ready. ↗', textX, textStartY + 92);
+  ctx.fillText('Report ready. All markers within range. ↗', textX, textStartY + 64);
 
   ctx.restore();
 }

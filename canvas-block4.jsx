@@ -15,7 +15,7 @@ let dashboardImageLoaded = false;
   img.onerror = function() {
     console.error('❌ Failed to load dashboardmedico.png');
   };
-  img.src = './dashboardmedico.png';
+  img.src = './dashboardmedico.png?v=' + Date.now();
 })();
 
 
@@ -212,26 +212,30 @@ function renderBlock4Dashboard(ctx, t) {
   if (lt >= linesStart && exitFade > 0.01) {
     const linesLt = lt - linesStart;
 
-    // Define data callout lines with labels
+    // Define data callout lines with labels - positioned based on actual dashboard layout
     const dataLines = [
       {
-        fromX: vp.x + vp.w * 0.18, fromY: vp.y + vp.h * 0.25, // CRI ring area
-        toX: vp.x - 180, toY: vp.y + vp.h * 0.15,
+        // CRI ring - circular arc with 86, left side ~30% from left, 45% from top
+        fromX: vp.x + vp.w * 0.30, fromY: vp.y + vp.h * 0.45,
+        toX: vp.x - 180, toY: vp.y + vp.h * 0.35,
         label: 'CLINICAL RECOVERY INDEX', value: '86/100', delay: 0
       },
       {
-        fromX: vp.x + vp.w * 0.35, fromY: vp.y + vp.h * 0.65, // Lower metrics
+        // PINCH card (motor function) - first card in domain breakdown, ~18% from left, 65% from top
+        fromX: vp.x + vp.w * 0.18, fromY: vp.y + vp.h * 0.65,
         toX: vp.x - 200, toY: vp.y + vp.h * 0.70,
         label: 'MOTOR FUNCTION', value: '88%', delay: 0.15
       },
       {
-        fromX: vp.x + vp.w * 0.85, fromY: vp.y + vp.h * 0.35, // Right side
-        toX: vp.x + vp.w + 180, toY: vp.y + vp.h * 0.25,
+        // SMILE card (facial symmetry) - third card in domain breakdown, ~60% from left, 65% from top
+        fromX: vp.x + vp.w * 0.60, fromY: vp.y + vp.h * 0.65,
+        toX: vp.x + vp.w + 180, toY: vp.y + vp.h * 0.55,
         label: 'FACIAL SYMMETRY', value: '82%', delay: 0.10
       },
       {
-        fromX: vp.x + vp.w * 0.75, fromY: vp.y + vp.h * 0.75, // Bottom right
-        toX: vp.x + vp.w + 200, toY: vp.y + vp.h * 0.80,
+        // VOICE card - fourth/rightmost card in domain breakdown, ~80% from left, 65% from top
+        fromX: vp.x + vp.w * 0.80, fromY: vp.y + vp.h * 0.65,
+        toX: vp.x + vp.w + 200, toY: vp.y + vp.h * 0.75,
         label: 'VOICE QUALITY', value: '90%', delay: 0.20
       }
     ];

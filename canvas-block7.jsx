@@ -1,261 +1,391 @@
-// canvas-block7.jsx — Block 7: The Heartbeat. 0:53 → 1:06
-// "Between Visits" anchored static — only right text changes, then unification.
+// canvas-block7.jsx — Block 7: The Fixed Gap with SLOT MACHINE effect
+// Three sentences with "GAP" anchored in red, slot machine vertical flow
 
 function renderBlock7Canvas(ctx, t) {
   if (t < 53.0 || t > 66.0) return;
   const lt = t - 53.0;
 
-  // Pure black — no atmosphere, silence is earned
+  // Pure black — no atmosphere, the problem speaks for itself
 
-  const centerY = 540;
-  const fontSize = 72;
-  const anchorFont = `800 ${fontSize}px ${FONT_SERIF}`;
-  const restFont = `600 ${fontSize}px ${FONT_SERIF}`;
+  // Manual easing function to replace Easing.easeOut
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
 
-  // Calculate anchor position dynamically for better balance
-  ctx.font = anchorFont;
-  const betweenVisitsWidth = ctx.measureText('Between Visits').width;
-  ctx.font = restFont;
-  const longestText = ', deterioration gets caught early.'; // Longest right text
-  const longestWidth = ctx.measureText(longestText).width;
-  const totalWidth = betweenVisitsWidth + longestWidth;
-  const anchorX = 960 - totalWidth / 2 - 50; // Center the whole phrase, slight left adjustment
+  const centerY = 540; // Vertical center of 1080px canvas
+  const baseFontSize = 110; // HUGE - slot machine needs to be visible
+  const heavyFont = `900 ${baseFontSize}px ${FONT_SERIF}`;
 
-  // Right-side texts that change
-  const rightTexts = [
-    ', recovery is now tracked.',
-    ', deterioration gets caught early.',
-    ', clinicians are never blind.',
-    ', nothing gets missed.',
-    '.com' // The final reveal - triggers EPIC finale
+  // ── PHASE 1: Three sentences with SLOT MACHINE vertical flow ──
+  const sentences = [
+    { left: '673 patients per clinician. No one is watching at home. There is a', gap: 'GAP' },
+    { left: 'Stroke recovery happens in 12 weeks. Clinicians see 2 of them. There is a', gap: 'GAP' },
+    { left: 'The data exists. The camera exists. The patient exists. There is a', gap: 'GAP' }
   ];
 
-  const holdDur = 2.0; // Each text holds for 2s
-  const crossDur = 0.2; // 200ms cross-dissolve
+  const holdDur = 2.0; // Each sentence holds 2s
+  const slideDur = 0.5; // 500ms vertical slide
+  const sentencesPhaseDur = sentences.length * (holdDur + slideDur);
 
-  // Calculate which text and fade states
-  let currentIndex = -1;
-  let fadeIn = 0;
-  let fadeOut = 0;
+  // ── GAP is STATIC at fixed position — never moves ──
+  const GAP_X = 1920 * 0.75; // Fixed position - 75% of canvas width
+  const GAP_Y = centerY; // Vertical center
 
-  for (let i = 0; i < rightTexts.length; i++) {
-    const textStart = i * (holdDur + crossDur);
-    const textEnd = textStart + holdDur;
-    const fadeOutStart = textEnd;
-    const fadeOutEnd = fadeOutStart + crossDur;
+  if (lt < sentencesPhaseDur) {
+    // Calculate shared font size that works for ALL three sentences
+    let sharedFontSize = baseFontSize;
+    let sharedFont = heavyFont;
 
-    if (lt >= textStart && lt < fadeOutEnd) {
-      currentIndex = i;
+    // Test all sentences to find the size that fits the longest one
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i];
+      let currentFontSize = baseFontSize;
 
-      // Fade in
-      if (lt < textStart + crossDur) {
-        fadeIn = (lt - textStart) / crossDur;
-      } else {
-        fadeIn = 1;
+      // Loop to find fitting font size for this sentence
+      while (currentFontSize > 30) {
+        const testFont = `900 ${currentFontSize}px ${FONT_SERIF}`;
+        ctx.font = testFont;
+
+        const whiteTextWidth = ctx.measureText(sentence.left).width;
+        const spaceWidth = ctx.measureText(' ').width;
+
+        // White text must end exactly one space before GAP_X
+        const whiteTextMaxEndX = GAP_X - spaceWidth;
+        const whiteTextStartX = whiteTextMaxEndX - whiteTextWidth;
+
+        // Check if white text starts on screen
+        if (whiteTextStartX >= 40) {
+          break; // This size works
+        }
+
+        currentFontSize -= 2; // Too big, reduce
       }
 
-      // Fade out
-      if (lt >= fadeOutStart) {
-        fadeOut = (lt - fadeOutStart) / crossDur;
-      } else {
-        fadeOut = 0;
+      // Use the smallest size needed across all sentences
+      if (currentFontSize < sharedFontSize) {
+        sharedFontSize = currentFontSize;
+        sharedFont = `900 ${currentFontSize}px ${FONT_SERIF}`;
       }
-      break;
     }
-  }
 
-  // ── PHASE 1: Static "Between Visits" with changing right text ──
-  const unificationStart = rightTexts.length * (holdDur + crossDur);
-
-  if (lt < unificationStart) {
-    // Draw static "Between Visits"
+    // Draw GAP at FIXED position - always visible, never moves
     ctx.save();
+    ctx.font = sharedFont;
+    const gapWidth = ctx.measureText('GAP').width;
+
+    // GAP pulsing red glow + chromatic aberration
+    const gapGlowPulse = 0.7 + Math.sin(lt * 3) * 0.3;
+
+    // Chromatic aberration on GAP (RGB split)
+    const aberration = 3;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#FF0000';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    ctx.font = anchorFont;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('Between Visits', anchorX, centerY);
+    ctx.fillText('GAP', GAP_X - aberration, GAP_Y);
+    ctx.fillStyle = '#00FF00';
+    ctx.fillText('GAP', GAP_X, GAP_Y);
+    ctx.fillStyle = '#0000FF';
+    ctx.fillText('GAP', GAP_X + aberration, GAP_Y);
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+
+    // Main GAP text with intense red glow
+    ctx.shadowColor = '#FF6B6B';
+    ctx.shadowBlur = 50 * gapGlowPulse;
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fillText('GAP', GAP_X, GAP_Y);
+
+    ctx.shadowBlur = 0;
+
+    // Particles around GAP
+    const particleCount = 8;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (lt * 2 + i / particleCount * Math.PI * 2);
+      const radius = 25 + Math.sin(lt * 4 + i) * 10;
+      const px = GAP_X + gapWidth / 2 + Math.cos(angle) * radius;
+      const py = GAP_Y + Math.sin(angle) * radius;
+      const particleSize = 2 + Math.sin(lt * 5 + i) * 1;
+
+      ctx.globalAlpha = 0.5 + Math.sin(lt * 6 + i) * 0.3;
+      ctx.fillStyle = '#FF6B6B';
+      ctx.beginPath();
+      ctx.arc(px, py, particleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
 
-    // Draw changing right text
-    if (currentIndex >= 0) {
-      const rightText = rightTexts[currentIndex];
-      const opacity = fadeIn * (1 - fadeOut);
+    // ── SLOT MACHINE LOGIC ──
+    const cycleTime = holdDur + slideDur;
+    const currentCycle = Math.floor(lt / cycleTime);
+    const cycleProgress = lt % cycleTime;
 
-      if (opacity > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
+    // Calculate vertical slot offset (0 to 1 during slide)
+    let slotOffset = 0;
+    if (cycleProgress > holdDur) {
+      const slideProgress = (cycleProgress - holdDur) / slideDur;
+      slotOffset = Easing.easeInOutCubic(slideProgress);
+    }
 
-        // Measure "Between Visits" to know where right text starts
-        ctx.font = anchorFont;
-        const anchorWidth = ctx.measureText('Between Visits').width;
+    const lineHeight = sharedFontSize * 2.2; // More space between lines for slot effect
 
-        ctx.font = restFont;
-        ctx.fillStyle = '#AEAEB2';
-        ctx.fillText(rightText, anchorX + anchorWidth, centerY);
-        ctx.restore();
+    // Draw 3 visible sentences: previous (above), current (center), next (below)
+    const currentIndex = Math.min(currentCycle, sentences.length - 1);
+
+    // Motion blur during slide for slot machine effect
+    const motionBlurIntensity = slotOffset * 15;
+
+    ctx.font = sharedFont;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    for (let offset = -1; offset <= 1; offset++) {
+      const sentenceIndex = currentIndex + offset;
+      if (sentenceIndex < 0 || sentenceIndex >= sentences.length) continue;
+
+      const sentence = sentences[sentenceIndex];
+
+      // Calculate Y position with slot offset
+      const baseY = GAP_Y + (offset * lineHeight) - (slotOffset * lineHeight);
+
+      // Calculate opacity: center is bright (1.0), others are dim (0.3)
+      let opacity = 0.3;
+      if (offset === 0) {
+        // Current sentence - bright white
+        opacity = 1.0;
+      } else if (offset === -1 && slotOffset > 0) {
+        // Previous sliding out - fade out as it moves up
+        opacity = 0.3 * (1 - slotOffset);
+      } else if (offset === 1 && slotOffset > 0) {
+        // Next sliding in - fade in as it moves up
+        opacity = 0.3 + (0.7 * slotOffset);
       }
+
+      if (opacity < 0.05) continue; // Skip if nearly invisible
+
+      // Calculate white text position
+      const whiteTextWidth = ctx.measureText(sentence.left).width;
+      const spaceWidth = ctx.measureText(' ').width;
+      const whiteTextMaxEndX = GAP_X - spaceWidth;
+      const whiteTextStartX = whiteTextMaxEndX - whiteTextWidth;
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+
+      // Motion blur effect during slide
+      if (slotOffset > 0 && slotOffset < 1) {
+        // Draw multiple copies with slight offset for motion blur
+        for (let blur = 0; blur < 3; blur++) {
+          const blurOffset = blur * motionBlurIntensity / 3;
+          ctx.globalAlpha = opacity * (0.3 - blur * 0.1);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(sentence.left, whiteTextStartX, baseY + blurOffset);
+        }
+      }
+
+      // Main text
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = '#ffffff';
+
+      // Add glow to center sentence
+      if (offset === 0) {
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 20;
+      }
+
+      ctx.fillText(sentence.left, whiteTextStartX, baseY);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // Slot machine frame indicator lines (horizontal guides)
+    if (slotOffset > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.1 * slotOffset;
+      ctx.strokeStyle = '#4A9EFF';
+      ctx.lineWidth = 2;
+
+      // Top guide line
+      ctx.beginPath();
+      ctx.moveTo(0, GAP_Y - lineHeight * 0.7);
+      ctx.lineTo(1920, GAP_Y - lineHeight * 0.7);
+      ctx.stroke();
+
+      // Bottom guide line
+      ctx.beginPath();
+      ctx.moveTo(0, GAP_Y + lineHeight * 0.7);
+      ctx.lineTo(1920, GAP_Y + lineHeight * 0.7);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
-  // ── PHASE 2: Unification sequence ──
-  if (lt >= unificationStart) {
-    const unifyLt = lt - unificationStart;
+  // ── PHASE 2: GAP alone, then FIXED slides in ──
+  const gapAloneStart = sentencesPhaseDur;
+  const gapAloneDur = 0.8;
 
-    // Step 1: Brief flash/impact when .com appears (150ms)
-    const flashDur = 0.15;
+  const fixedSlideStart = gapAloneStart + gapAloneDur;
+  const fixedSlideDur = 0.6;
 
-    // Step 2: Words join together quickly (250ms)
-    const joinWordsStart = flashDur;
-    const joinWordsDur = 0.25;
+  const healStart = fixedSlideStart + fixedSlideDur;
+  const healDur = 0.4;
 
-    // Step 3: Move to center + scale up simultaneously (400ms) - EPIC
-    const epicStart = joinWordsStart + joinWordsDur;
-    const epicDur = 0.4;
+  const pulseStart = healStart + healDur;
+  const pulseDur = 0.5;
 
-    // Step 4: Explosion of effects at center (500ms)
-    const explosionStart = epicStart + epicDur;
-    const explosionDur = 0.5;
+  const dotComStart = pulseStart + pulseDur;
+  const dotComTypeDur = 0.16;
 
-    // Step 5: Hold large with pulsing glow (2.5s)
-    const holdStart = explosionStart + explosionDur;
-    const holdEnd = holdStart + 2.5;
+  const scaleStart = dotComStart + dotComTypeDur;
+  const scaleDur = 0.8;
 
-    // Step 6: Fade to black (1.2s)
-    const fadeBlackStart = holdEnd;
-    const fadeBlackDur = 1.2;
+  const explosionStart = scaleStart + scaleDur;
+  const explosionDur = 0.5;
 
-    // Initial flash when .com appears
-    let flashIntensity = 0;
-    if (unifyLt < flashDur) {
-      flashIntensity = Math.sin((unifyLt / flashDur) * Math.PI) * 0.4;
-    }
+  const holdStart = explosionStart + explosionDur;
+  const holdEnd = holdStart + 2.0;
 
-    // Measure widths
-    ctx.font = anchorFont;
-    const betweenWidth = ctx.measureText('Between').width;
-    const visitsWidth = ctx.measureText('Visits').width;
-    const spaceWidth = ctx.measureText(' ').width;
-    ctx.font = restFont;
+  const fadeBlackStart = holdEnd;
+  const fadeBlackDur = 1.2;
+
+  if (lt >= gapAloneStart) {
+    const phaseT = lt - gapAloneStart;
+
+    ctx.font = heavyFont;
+
+    const fixedWidth = ctx.measureText('FIXED').width;
+    const gapWidth = ctx.measureText('GAP').width;
     const comWidth = ctx.measureText('.com').width;
 
-    // Calculate join progress
-    const joinT = Math.min(Math.max((unifyLt - joinWordsStart) / joinWordsDur, 0), 1);
-    const joinEase = Easing.easeInOutCubic(joinT);
+    const GAP_X = 1920 * 0.75;
 
-    // Initial positions
-    const betweenInitialX = anchorX;
-    const visitsInitialX = betweenInitialX + betweenWidth + spaceWidth;
-    const comInitialX = visitsInitialX + visitsWidth;
+    const fixedStartX = -fixedWidth - 100;
+    const fixedEndX = GAP_X - fixedWidth;
 
-    // Joined positions (tight together)
-    const betweenJoinedX = anchorX;
-    const visitsJoinedX = betweenJoinedX + betweenWidth - 5;
-    const comJoinedX = visitsJoinedX + visitsWidth - 5;
+    let fixedX = fixedStartX;
+    let fixedVisible = false;
+    let fixedSlideProgress = 0;
 
-    // Interpolate during join
-    const betweenX = betweenInitialX + (betweenJoinedX - betweenInitialX) * joinEase;
-    const visitsX = visitsInitialX + (visitsJoinedX - visitsInitialX) * joinEase;
-    const comX = comInitialX + (comJoinedX - comInitialX) * joinEase;
+    if (phaseT >= (fixedSlideStart - gapAloneStart)) {
+      fixedVisible = true;
+      const slideT = Math.min((phaseT - (fixedSlideStart - gapAloneStart)) / fixedSlideDur, 1);
+      const slideEase = easeOut(slideT);
+      fixedX = fixedStartX + (fixedEndX - fixedStartX) * slideEase;
+      fixedSlideProgress = slideT;
+    }
 
-    // EPIC transformation - move to center + scale up simultaneously
-    const epicT = Math.min(Math.max((unifyLt - epicStart) / epicDur, 0), 1);
-    const epicEase = Easing.easeOutCubic(epicT);
+    let shakeX = 0;
+    let shakeY = 0;
+    if (fixedSlideProgress > 0.8 && fixedSlideProgress < 1.0) {
+      const shakeIntensity = 8 * (1 - (fixedSlideProgress - 0.8) / 0.2);
+      shakeX = (Math.random() - 0.5) * shakeIntensity;
+      shakeY = (Math.random() - 0.5) * shakeIntensity;
+    }
 
-    // Calculate center position
-    const joinedWidth = betweenWidth + visitsWidth + comWidth - 10;
-    const targetCenterX = 960 - joinedWidth / 2;
+    let gapColor = '#FF6B6B';
+    if (phaseT >= (healStart - gapAloneStart)) {
+      const healT = Math.min((phaseT - (healStart - gapAloneStart)) / healDur, 1);
+      const r = Math.floor(255 + (255 - 255) * healT);
+      const g = Math.floor(107 + (255 - 107) * healT);
+      const b = Math.floor(107 + (255 - 107) * healT);
+      gapColor = `rgb(${r}, ${g}, ${b})`;
+    }
 
-    const currentBetweenX = betweenX + (targetCenterX - betweenX) * epicEase;
-    const currentVisitsX = visitsX + (targetCenterX + betweenWidth - 5 - visitsX) * epicEase;
-    const currentComX = comX + (targetCenterX + betweenWidth + visitsWidth - 10 - comX) * epicEase;
+    let pulseIntensity = 0;
+    if (phaseT >= (pulseStart - gapAloneStart) && phaseT < (pulseStart - gapAloneStart + pulseDur)) {
+      const pulseT = (phaseT - (pulseStart - gapAloneStart)) / pulseDur;
+      pulseIntensity = Math.sin(pulseT * Math.PI);
+    }
 
-    // Scale grows during epic moment
-    let scale = 1.0 + epicEase * 0.25; // 100% → 125%
+    let dotComText = '';
+    let dotComVisible = false;
+    if (phaseT >= (dotComStart - gapAloneStart)) {
+      dotComVisible = true;
+      const typeT = phaseT - (dotComStart - gapAloneStart);
+      const charsTyped = Math.min(Math.floor(typeT / 0.04), 4);
+      dotComText = '.com'.substring(0, charsTyped);
+    }
 
-    // Explosion effects at center
+    const totalWidth = fixedWidth + gapWidth + (dotComVisible ? comWidth : 0);
+    const centerStartX = 960 - totalWidth / 2;
+
+    let currentFixedX = fixedX;
+    let currentGapX = GAP_X;
+    let currentComX = GAP_X + gapWidth;
+
+    let scale = 1.0;
+    if (phaseT >= (scaleStart - gapAloneStart)) {
+      const scaleT = Math.min((phaseT - (scaleStart - gapAloneStart)) / scaleDur, 1);
+      const scaleEase = Easing.easeOutCubic(scaleT);
+      scale = 1.0 + scaleEase * 0.15;
+
+      currentFixedX = fixedX + (centerStartX - fixedX) * scaleEase;
+      currentGapX = GAP_X + (centerStartX + fixedWidth - GAP_X) * scaleEase;
+      currentComX = currentGapX + gapWidth;
+    }
+
     let explosionIntensity = 0;
     let particles = [];
-    if (unifyLt >= explosionStart) {
-      const expT = Math.min((unifyLt - explosionStart) / explosionDur, 1);
+    if (phaseT >= (explosionStart - gapAloneStart)) {
+      const expT = Math.min((phaseT - (explosionStart - gapAloneStart)) / explosionDur, 1);
       explosionIntensity = Math.sin(expT * Math.PI);
 
-      // Continue scaling during explosion
-      scale = 1.25 + Easing.easeOutCubic(expT) * 0.25; // 125% → 150%
-
-      // Generate particles for explosion
-      const particleCount = 20;
+      const particleCount = 30;
       for (let i = 0; i < particleCount; i++) {
         const angle = (i / particleCount) * Math.PI * 2;
-        const distance = expT * 300;
+        const distance = expT * 400;
         particles.push({
           x: 960 + Math.cos(angle) * distance,
           y: centerY + Math.sin(angle) * distance,
-          opacity: (1 - expT) * 0.6
+          opacity: (1 - expT) * 0.7
         });
       }
     }
 
-    // Pulsing during hold
-    let pulseScale = 1.0;
-    if (unifyLt >= holdStart && unifyLt < holdEnd) {
-      const holdT = (unifyLt - holdStart) / (holdEnd - holdStart);
-      pulseScale = 1.0 + Math.sin(holdT * Math.PI * 6) * 0.03; // Subtle pulse
-    }
-
-    scale *= pulseScale;
-
-    // Color transformation
-    const unifiedColor = unifyLt >= joinWordsStart;
-
-    // Final fade
     let finalOpacity = 1.0;
-    if (unifyLt >= fadeBlackStart) {
-      const fadeT = Math.min((unifyLt - fadeBlackStart) / fadeBlackDur, 1);
+    if (phaseT >= (fadeBlackStart - gapAloneStart)) {
+      const fadeT = Math.min((phaseT - (fadeBlackStart - gapAloneStart)) / fadeBlackDur, 1);
       finalOpacity = 1 - Easing.easeInCubic(fadeT);
     }
 
     if (finalOpacity > 0.01) {
-      // Initial flash across screen
-      if (flashIntensity > 0) {
-        ctx.save();
-        ctx.globalAlpha = flashIntensity * finalOpacity;
-        ctx.fillStyle = '#4A9EFF';
-        ctx.fillRect(0, 0, 1920, 1080);
-        ctx.restore();
-      }
-
-      // Explosion particles
       if (particles.length > 0) {
         ctx.save();
-        particles.forEach(p => {
+        particles.forEach((p, idx) => {
+          const trailLength = 30;
+          const angle = Math.atan2(p.y - centerY, p.x - 960);
+          ctx.globalAlpha = p.opacity * 0.3 * finalOpacity;
+          ctx.strokeStyle = '#4A9EFF';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - Math.cos(angle) * trailLength, p.y - Math.sin(angle) * trailLength);
+          ctx.stroke();
+
           ctx.globalAlpha = p.opacity * finalOpacity;
           ctx.fillStyle = '#4A9EFF';
           ctx.shadowColor = '#4A9EFF';
-          ctx.shadowBlur = 20;
+          ctx.shadowBlur = 30;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
           ctx.fill();
         });
         ctx.restore();
       }
 
-      // Multiple expanding rings during explosion
       if (explosionIntensity > 0) {
-        for (let i = 0; i < 4; i++) {
-          const ringT = (unifyLt - explosionStart - i * 0.1) / explosionDur;
+        for (let i = 0; i < 5; i++) {
+          const ringT = (phaseT - (explosionStart - gapAloneStart) - i * 0.08) / explosionDur;
           if (ringT > 0 && ringT < 1) {
             const radius = Easing.easeOutCubic(ringT) * (600 + i * 100);
-            const ringAlpha = (1 - ringT) * 0.35 * finalOpacity;
+            const ringAlpha = (1 - ringT) * 0.5 * finalOpacity;
 
             ctx.save();
             ctx.globalAlpha = ringAlpha;
             ctx.strokeStyle = '#4A9EFF';
-            ctx.lineWidth = 4 - i * 0.5;
+            ctx.lineWidth = 6 - i * 0.8;
             ctx.shadowColor = '#4A9EFF';
-            ctx.shadowBlur = 40;
+            ctx.shadowBlur = 60;
             ctx.beginPath();
             ctx.arc(960, centerY, radius, 0, Math.PI * 2);
             ctx.stroke();
@@ -264,64 +394,45 @@ function renderBlock7Canvas(ctx, t) {
         }
       }
 
-      // Radial gradient glow behind text during hold
-      if (unifyLt >= holdStart && unifyLt < holdEnd) {
-        const holdT = (unifyLt - holdStart) / (holdEnd - holdStart);
-        const glowPulse = 0.3 + Math.sin(holdT * Math.PI * 6) * 0.15;
-
+      if (explosionIntensity > 0.7) {
         ctx.save();
-        ctx.globalAlpha = glowPulse * finalOpacity;
-        const grad = ctx.createRadialGradient(960, centerY, 0, 960, centerY, 500);
-        grad.addColorStop(0, 'rgba(74, 158, 255, 0.3)');
-        grad.addColorStop(0.5, 'rgba(74, 158, 255, 0.1)');
-        grad.addColorStop(1, 'rgba(74, 158, 255, 0)');
-        ctx.fillStyle = grad;
+        ctx.globalAlpha = (explosionIntensity - 0.7) * 0.3 * finalOpacity;
+        ctx.fillStyle = '#4A9EFF';
         ctx.fillRect(0, 0, 1920, 1080);
         ctx.restore();
       }
 
-      // Main text
       ctx.save();
       ctx.globalAlpha = finalOpacity;
-
-      ctx.translate(960, centerY);
+      ctx.translate(960 + shakeX, centerY + shakeY);
       ctx.scale(scale, scale);
       ctx.translate(-960, -centerY);
+
+      ctx.font = heavyFont;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
 
-      // Strong glow during epic + explosion
-      const glowStrength = Math.max(epicT, explosionIntensity);
-      if (glowStrength > 0) {
-        ctx.shadowColor = '#4A9EFF';
-        ctx.shadowBlur = 50 * glowStrength;
+      if (fixedVisible) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('FIXED', currentFixedX, centerY);
       }
 
-      // Color choice
-      const textColor = unifiedColor ? '#ffffff' : '#ffffff';
-      ctx.font = anchorFont;
-
-      // Draw "Between"
-      ctx.fillStyle = textColor;
-      ctx.fillText('Between', currentBetweenX, centerY);
-
-      // Draw "Visits"
-      ctx.fillStyle = textColor;
-      ctx.fillText('Visits', currentVisitsX, centerY);
-
-      // Draw ".com" in gradient during explosion, solid blue otherwise
-      ctx.font = restFont;
       if (explosionIntensity > 0.1) {
-        // Gradient .com during explosion
-        const grad = ctx.createLinearGradient(currentComX, 0, currentComX + comWidth, 0);
-        grad.addColorStop(0, '#00D9FF');
-        grad.addColorStop(0.5, '#4A9EFF');
-        grad.addColorStop(1, '#6BB3FF');
-        ctx.fillStyle = grad;
-      } else {
-        ctx.fillStyle = '#4A9EFF';
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 80 * explosionIntensity;
       }
-      ctx.fillText('.com', currentComX, centerY);
+
+      ctx.fillStyle = gapColor;
+      ctx.fillText('GAP', currentGapX, centerY);
+
+      ctx.shadowBlur = 0;
+
+      if (dotComVisible && dotComText.length > 0) {
+        ctx.shadowColor = '#4A9EFF';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = '#4A9EFF';
+        ctx.fillText(dotComText, currentComX, centerY);
+      }
 
       ctx.restore();
     }

@@ -223,7 +223,6 @@ function renderBlock2Beat1(ctx, t) {
   const dataCards = [
     { x: 140, y: 180, label: 'SESSION TIME', value: '60s', delay: 0.6 },
     { x: 140, y: 860, label: 'SETUP TIME', value: '0s', delay: 0.8 },
-    { x: 1680, y: 200, label: 'ACCURACY', value: '98%', delay: 1.0 },
   ];
 
   // Optimized card rendering

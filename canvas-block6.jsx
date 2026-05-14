@@ -100,6 +100,23 @@ function renderBlock6Beat1(ctx, t) {
     ctx.restore();
   }
 
+  // New line below HARDWARE COST
+  const sLabel2 = popInState(lt, { inAt: 0.50, dur: 0.08, fromScale: 1.12, outAt: 1.85, outDur: 0.20 });
+  if (sLabel2) {
+    ctx.save();
+    ctx.globalAlpha = sLabel2.opacity;
+    ctx.translate(960, 720);
+    ctx.scale(sLabel2.scale, sLabel2.scale);
+    ctx.font = `500 14px ${FONT_MONO}`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3.2px';
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#00D9FF';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(0, 217, 255, 0.75)';
+    ctx.fillText('NO SUPPLY CHAIN · NO MANUFACTURING · NO LOGISTICS', 0, 0);
+    ctx.restore();
+  }
+
   // Scattered labels removidos
 
   // Tertiary system tag with cyan glow
@@ -197,7 +214,7 @@ function renderBlock6Beat2(ctx, t) {
     ctx.shadowColor = '#4A9EFF';
     ctx.shadowBlur = 22;
     ctx.fillStyle = '#4A9EFF';
-    ctx.fillText('SECONDS PER SESSION', 0, 0);
+    ctx.fillText('SECONDS · ONCE A DAY · FROM HOME', 0, 0);
     ctx.restore();
   }
 
@@ -311,7 +328,7 @@ function renderBlock6Beat3(ctx, t) {
     ctx.shadowColor = '#4A9EFF';
     ctx.shadowBlur = 24;
     ctx.fillStyle = grad;
-    ctx.fillText('Captured in a 60-second game.', 0, 0);
+    ctx.fillText("Captured while María thinks she's just playing.", 0, 0);
     ctx.restore();
   }
 
